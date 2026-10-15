@@ -1,0 +1,16 @@
+{
+  "version": "routing-v2-public",
+  "local": {
+    "enabled": false,
+    "note": "Set enabled to true only after installing a local worker MCP server. See references/local-workers.md.",
+    "server": "local_worker",
+    "tools": []
+  },
+  "roles": {
+    "LOCAL_DEFAULT": null,
+    "LOCAL_QUALITY": null,
+    "LOCAL_ALTERNATE": null,
+    "FRONTIER_WORKER": "gpt-6-luna"
+  },
+  "disabledModels": []
+}

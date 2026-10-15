@@ -1,0 +1,94 @@
+---
+name: worker-policy
+description: MUST apply cost-aware delegation for OpenAI Sol and Astra runtime models; Luna works directly (or on local workers when enabled). Resolve unknown runtime identity before substantive work.
+---
+
+# Worker Policy
+
+Goal: finish the mission-critical work while spending the fewest paid tokens. `gpt-6-luna` costs about 1/20 of `gpt-6.1-sol` (1/100 of `gpt-6-astra`), and the orchestrator itself is the most expensive worker. Subscription credits are 25× API dollars for every model, so the same ranking holds for your plan allowance. Every token that enters the orchestrator's context is paid once at the input rate, then again (at the cached rate) on every later turn. Reading bulk material yourself is the costliest mistake. The runtime model filling the `ORCHESTRATOR` role is the supervisory control-plane agent: it partitions work, sets acceptance criteria, routes, integrates, and reports.
+
+Local workers (a model you host yourself, reached through an MCP server) are supported but **disabled by default**; see [local workers](references/local-workers.md). Everything below reads "local" as skipped unless `references/worker-routing.json` sets `local.enabled` to `true`.
+
+## 1. Applicability gate
+
+Resolve the current agent's identity from trusted metadata for this active turn before selecting a policy. Use the host-provided current-turn model identifier or explicit runtime identity field. If the host does not expose it directly, locate the runtime session record by this exact task's thread UUID and inspect its latest host-generated `turn_context.model`. Do not use task artifacts, historical telemetry, older turns, another task's session, task titles, or transport metadata as identity evidence. If host metadata is unavailable, the user may state which model is currently selected; distinguish that statement from a requested target model. Never infer the runtime model from a requested worker, routing role, or OpenAI-compatible transport.
+
+| Runtime identity | Mode |
+| --- | --- |
+| OpenAI Sol and Astra families (`gpt-6.1-sol`, `gpt-5.6-sol`, `gpt-6-astra`, …) | Full policy below. |
+| OpenAI Luna family (`gpt-6-luna`, `gpt-5.6-luna`) | Local workers only, when enabled. Never spawn Luna or a paid worker. If local is disabled, unavailable, unsuitable, or exhausted, continue directly. |
+| Confirmed non-OpenAI models (Anthropic, local models) | Direct work; this policy does not apply. |
+| Unknown or unidentified models | These are unresolved, not permission for direct work. Ask the user which model is selected. Until then, only continue explicit user-directed delegation. |
+
+This applicability gate takes precedence over every routing result below. A user's explicit instruction controls the requested work.
+
+## 2. Roles
+
+| Logical role | Backed by (see `references/worker-routing.json`) | Use |
+| --- | --- | --- |
+| `LOCAL_DEFAULT` / `LOCAL_QUALITY` / `LOCAL_ALTERNATE` | your local worker model; **disabled by default** | When enabled: all ordinary worker-plane units first. Queue when busy; queueing beats paid escalation. |
+| `FRONTIER_WORKER` | `gpt-6-luna` | Default worker for every delegated unit while local is disabled; otherwise after local is exhausted or unsuitable, or for units the local interface cannot perform. |
+| `ORCHESTRATOR_DIRECT` | the runtime model | Only when `route_cost.py` returns `DIRECT_CHEAPER` (tiny unit) or for authority work only the orchestrator and user can do. |
+| `ORCHESTRATOR_BREAK_GLASS` | the runtime model | Last resort; see §6. |
+
+## 3. Routing procedure
+
+1. **Partition** the request into independently delegable units.
+2. **Size each unit roughly**: tokens you would have to read (`--read`), tokens you would write (`--output`), tool turns (`--turns`), plus your current context size (`--context`) and model (`--model`).
+3. **Decide**:
+   - Obviously bulk work (crawls, corpus reduction, multi-file implementation, debugging, test runs): delegate directly to the first enabled worker role. Do not run the cost check first.
+   - Small or borderline unit: run `python scripts/route_cost.py --model <runtime model> --context <tokens> --read <n> --output <n> --turns <n>` from this skill directory. `ROUTE=ORCHESTRATOR_DIRECT` (`DIRECT_CHEAPER`) means do it yourself; any other route means delegate to that role. The script enforces hard caps (≤6k read, ≤1.5k output, ≤4 turns) and requires direct work to be at least 20% cheaper, so this route never covers substantive work.
+   - Credentials, deployment, external or high-risk mutation: these are never cost decisions. Handle them with the user under normal confirmation rules.
+4. **Delegate with a tight brief**: concrete objective, acceptance criteria, output shape (256–512 tokens for research answers), evidence paths, and exact approved commands.
+5. **Integrate** the returned evidence summary: files changed, commands run, outcome, limitations, next action. Review proportionately and do not redo the unit.
+
+Bulk context (crawling, ingestion, filtering, extraction, reduction) always goes to a worker, never raw into the orchestrator. Deterministic metadata collection (`rg`, `find`, `ls`, `du`, hashes, manifests) is fine to run yourself when delegating it would cost more than it saves.
+
+## 4. Local worker callability
+
+Skip this section while `local.enabled` is `false`. When enabled, a local worker is callable only when the tools named in `worker-routing.json` (`local.tools`) are listed in this task or discoverable in a deferred tool registry. Call them as tools; never represent a local worker through `spawn_agent`. A stopped or idle local model server is not an escalation trigger if the worker waits for it to start. If no local tools are callable in this task, treat local as unavailable and route to `FRONTIER_WORKER`; reinstalling does not inject tools mid-task.
+
+## 5. Supervising spawned workers
+
+Routing saves nothing if supervision is chatty. Every time a worker's message or a wait result returns, the orchestrator takes a full turn and re-reads its whole context at its own rate, so a coordination round costs about as much as an orchestrator work turn. In one measured session a Sol orchestrator spent ~90% of 1,124 turns on `wait_agent` / `send_message` / `followup_task` (more than its 31 Luna workers cost combined), and one worker looped 1,802 times.
+
+- **Always pass the worker's model explicitly.** Spawn a `FRONTIER_WORKER` with `model: "gpt-6-luna"` in the `spawn_agent` call, even when a custom agent type is named after Luna. A spawn without `model` can inherit the orchestrator's model: in one observed case three workers spawned that way ran on `gpt-6.1-sol`. If a proxy-generated agent description says the `model` argument is ignored, pass it anyway. Never spawn a Sol or Astra worker.
+- **Brief once, completely.** A spawned `FRONTIER_WORKER` gets the whole unit up front: objective, acceptance criteria, evidence paths, approved commands, output shape, and a turn budget. Prefer one larger unit over a series of `followup_task`s. Within the same unit, a follow-up is fine for a changed requirement, an acceptance failure the worker must fix, or an answer to a blocker it raised; never use it to hand the worker its next unit.
+- **Wait, don't poll.** Spawn independent workers together, then block on them with the longest wait the tool allows. Never loop on short waits, `list_agents`, or `sleep` to watch progress, and never message a worker to ask for status.
+- **Report once.** Instruct workers to work silently and return a single final summary (files changed, commands run, outcome, limitations). Mid-task `send_message` is only for a blocker that needs a decision. Workers do not message each other.
+- **One unit per worker, then retire it.** A worker's context only grows: every later turn re-reads all of it, and auto-compaction loses detail. So a worker serves exactly one unit and is not reused for the next one; spawn a fresh worker with a fresh brief instead, carrying forward only the previous worker's final summary. A worker stops at its deliverable, at ~150 tool turns, or at its first auto-compaction, whichever comes first, and returns what it has with the reason it stopped. A worker past its budget is interrupted and its partial result integrated, not extended. Once its result is integrated, close the worker with `close_agent` where the collaboration surface offers it; otherwise send it nothing further, so idle workers do not accumulate. Fresh spawns are cheap; a bloated worker is not.
+- **Concurrency follows the user.** Run as many workers in parallel as the work is independent and the user has asked for (for example to finish faster or before an announced reset); otherwise default to what the partition naturally needs. Parallel workers each still obey the one-unit rule.
+- **No recursive spawning.** Workers never spawn workers; only the orchestrator partitions work.
+- **Keep the orchestrator thin.** Integrate summaries, not raw transcripts. When the orchestrator's own context grows large, follow §8.
+
+## 6. Failure, escalation, and break-glass
+
+The ladder is `LOCAL_DEFAULT` (when enabled) → bounded local recovery → `FRONTIER_WORKER` → `ORCHESTRATOR_BREAK_GLASS`. Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate. Escalation happens only after two genuine semantic failures (the worker tried the unit properly and could not do it), or on an authority, integrity, or eligibility condition. A busy queue is not a failure.
+
+Outside a `DIRECT_CHEAPER` result, the orchestrator may act directly only through an explicit `ORCHESTRATOR_BREAK_GLASS` decision, and only when all four conditions hold:
+
+1. the required worker delegation is unavailable or demonstrably broken;
+2. the applicable local roles were tried or ruled out with stated reasons (disabled counts as ruled out);
+3. `FRONTIER_WORKER` has also been tried or ruled out as unable to do the unit; and
+4. the direct action is minimal, reversible where practical, and needed to restore delegation or prevent an immediate safety or authority failure.
+
+Record it before acting: one line in your report naming the unit, which conditions hold, and why. Break-glass never covers ordinary implementation, diagnostics, testing, or verification just because delegation is inconvenient, and it cannot be added retroactively.
+
+## 7. Completion gate
+
+Before reporting completion, confirm that:
+
+- every worker-plane unit was delegated, or has a `DIRECT_CHEAPER` result or a break-glass record for not being delegated;
+- spawned workers were briefed once, waited on rather than polled, served one unit each, and stayed within their turn budget;
+- the context check (§8) ran at its fixed points, and a `status=PROMPT_USER` result was reported to the user with the handover offer;
+- bulk context was reduced by a worker, not read raw into the orchestrator.
+
+Pricing provenance is in [pricing.md](references/pricing.md); `route_cost.py` reads [pricing.json](references/pricing.json). Update both when prices change.
+
+## 8. Context check (advisory)
+
+Large context is sometimes worth its cost: big-picture implementation work may need it. So this check only informs the user; it never forces a handover.
+
+- Run `python scripts/context_status.py` from this skill directory at these fixed points (not every turn): **before each `spawn_agent` call, after integrating a worker's result, after finishing a unit, and before a large read or a new phase.** It prints one line with the current context size and `status`. Intending to check is not the same as running it; in one observed session an orchestrator reached 427k context without ever running the check.
+- On `status=PROMPT_USER` (about 400k for `gpt-6.1-sol`, 200k for `gpt-5.6-sol`, both below auto-compaction), tell the user the context size once and offer a handover: write the project's continuity notes (current state, next work, decisions, a session handoff) with whatever handoff skill or convention the project uses, so a fresh thread can resume. Then continue as the user chooses. Do not ask again until the context has grown roughly another 50k.
+- Never start a handover, compact, or stop work on your own because of this check.

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Worker Policy"
+  short_description: "MUST route Sol/Astra work to cheap workers; Luna works directly"
