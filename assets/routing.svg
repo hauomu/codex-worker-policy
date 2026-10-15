@@ -3,34 +3,34 @@
   <desc id="desc">Flowchart: an identity gate, partitioning into units, a bulk check, route_cost.py's hard-cap and margin checks, and an escalation ladder from local workers (disabled by default) to gpt-6-luna to break-glass. A side panel explains the cost model.</desc>
   <defs>
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 L10 5 L0 10 z" fill="#8f9bd0"/>
+      <path d="M0 0 L10 5 L0 10 z" fill="#8790b8"/>
     </marker>
     <marker id="arrGold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 L10 5 L0 10 z" fill="#ffb93f"/>
+      <path d="M0 0 L10 5 L0 10 z" fill="#e8961f"/>
     </marker>
     <style>
-      .node { fill: #1c2350; stroke: #3d4789; stroke-width: 1.5; }
-      .sol { fill: #2e2a3f; stroke: #ffb93f; stroke-width: 2; }
-      .luna { fill: #222a55; stroke: #c3cdf3; stroke-width: 2; }
-      .off { fill: #161b3c; stroke: #6c76a8; stroke-width: 1.5; stroke-dasharray: 7 6; }
-      .glass { fill: #3a2233; stroke: #ff7a6b; stroke-width: 2; }
-      .panel { fill: #151a3a; stroke: #2f3770; stroke-width: 1.5; }
-      .h { fill: #f1f3ff; font-size: 17px; font-weight: 600; }
-      .t { fill: #dfe4ff; font-size: 14.5px; }
-      .s { fill: #a9b2da; font-size: 13px; }
-      .m { fill: #dfe4ff; font-size: 13px; font-family: Consolas, Menlo, monospace; }
-      .lab { fill: #a9b2da; font-size: 12.5px; font-style: italic; }
-      .yes { fill: #ffcf6b; font-size: 12.5px; font-weight: 600; }
-      .no { fill: #c3cdf3; font-size: 12.5px; font-weight: 600; }
-      .line { stroke: #8f9bd0; stroke-width: 2; fill: none; }
-      .gold { stroke: #ffb93f; stroke-width: 2.5; fill: none; }
+      .node { fill: #ffffff; stroke: #c3cae3; stroke-width: 1.5; }
+      .sol { fill: #fff5e3; stroke: #e8961f; stroke-width: 2; }
+      .luna { fill: #edf0fc; stroke: #7d8fd6; stroke-width: 2; }
+      .off { fill: #f5f6fa; stroke: #9aa3c7; stroke-width: 1.5; stroke-dasharray: 7 6; }
+      .glass { fill: #fdecea; stroke: #e05a4a; stroke-width: 2; }
+      .panel { fill: #ffffff; stroke: #dde2f0; stroke-width: 1.5; }
+      .h { fill: #1b2140; font-size: 17px; font-weight: 600; }
+      .t { fill: #2a3156; font-size: 14.5px; }
+      .s { fill: #586185; font-size: 13px; }
+      .m { fill: #2a3156; font-size: 13px; font-family: Consolas, Menlo, monospace; }
+      .lab { fill: #586185; font-size: 12.5px; font-style: italic; }
+      .yes { fill: #b66d00; font-size: 12.5px; font-weight: 600; }
+      .no { fill: #4a5bb0; font-size: 12.5px; font-weight: 600; }
+      .line { stroke: #8790b8; stroke-width: 2; fill: none; }
+      .gold { stroke: #e8961f; stroke-width: 2.5; fill: none; }
     </style>
   </defs>
 
-  <rect width="1200" height="1640" rx="28" fill="#0f1430"/>
+  <rect width="1200" height="1640" rx="28" fill="#f7f8fc"/>
 
   <!-- header -->
-  <text x="60" y="66" fill="#ffffff" font-size="30" font-weight="700">How worker-policy routes work</text>
+  <text x="60" y="66" fill="#1b2140" font-size="30" font-weight="700">How worker-policy routes work</text>
   <text x="60" y="96" class="s" font-size="15">Sol and Astra plan, brief and integrate. Cheap Luna workers do the reading and writing.</text>
 
   <!-- ============ MAIN FLOW (x 60–760) ============ -->
@@ -77,8 +77,8 @@
   <!-- 5. route_cost.py -->
   <path d="M420 540 L420 584" class="line" marker-end="url(#arr)"/>
   <text x="430" y="566" class="no">no, small or borderline</text>
-  <rect x="120" y="586" width="600" height="214" rx="18" fill="none" stroke="#ffb93f" stroke-width="1.5" stroke-dasharray="4 5"/>
-  <text x="140" y="612" class="m" fill="#ffcf6b">4 · python scripts/route_cost.py --model … --read … --output … --turns …</text>
+  <rect x="120" y="586" width="600" height="214" rx="18" fill="none" stroke="#e8961f" stroke-width="1.5" stroke-dasharray="4 5"/>
+  <text x="140" y="612" class="m" fill="#b66d00">4 · python scripts/route_cost.py --model … --read … --output … --turns …</text>
 
   <rect x="170" y="628" width="500" height="58" rx="14" class="node"/>
   <text x="420" y="652" class="h" text-anchor="middle">Within the hard caps?</text>
@@ -101,7 +101,7 @@
   <text x="262" y="826" class="yes">yes</text>
   <rect x="60" y="832" width="300" height="70" rx="14" class="sol"/>
   <text x="210" y="858" class="h" text-anchor="middle">Orchestrator does it</text>
-  <text x="210" y="879" class="m" text-anchor="middle" fill="#ffcf6b">DIRECT_CHEAPER</text>
+  <text x="210" y="879" class="m" text-anchor="middle" fill="#b66d00">DIRECT_CHEAPER</text>
   <text x="210" y="895" class="s" text-anchor="middle">tiny units only</text>
 
   <!-- right rail collecting every delegate decision -->
@@ -116,7 +116,7 @@
   <!-- 7. escalation ladder -->
   <path d="M580 902 L580 934" class="line" marker-end="url(#arr)"/>
   <rect x="420" y="936" width="320" height="58" rx="14" class="off"/>
-  <text x="580" y="960" class="h" text-anchor="middle" fill="#c5cbe8">LOCAL_DEFAULT · your own model</text>
+  <text x="580" y="960" class="h" text-anchor="middle" fill="#5e6690">LOCAL_DEFAULT · your own model</text>
   <text x="580" y="981" class="s" text-anchor="middle">off by default · skipped · see step 7 below</text>
   <path d="M580 994 L580 1026" class="line" marker-end="url(#arr)"/>
   <text x="592" y="1015" class="lab">if disabled, or after 2 genuine failures</text>
@@ -153,16 +153,16 @@
   <text x="832" y="186" class="s">Every orchestrator turn re-reads its whole</text>
   <text x="832" y="204" class="s">context. Anything it reads stays resident</text>
   <text x="832" y="222" class="s">and is paid again on every later turn.</text>
-  <text x="832" y="256" class="t" font-weight="600" fill="#ffcf6b">Direct</text>
+  <text x="832" y="256" class="t" font-weight="600" fill="#b66d00">Direct</text>
   <text x="832" y="278" class="m">turns × context × cached</text>
   <text x="832" y="296" class="m">+ read × (input + later turns × cached)</text>
   <text x="832" y="314" class="m">+ written × output price</text>
-  <text x="832" y="348" class="t" font-weight="600" fill="#c3cdf3">Delegate to Luna</text>
+  <text x="832" y="348" class="t" font-weight="600" fill="#4a5bb0">Delegate to Luna</text>
   <text x="832" y="370" class="m">2 turns × context × cached</text>
   <text x="832" y="388" class="m">+ brief + resident summary</text>
   <text x="832" y="406" class="m">+ Luna's own tokens</text>
   <text x="832" y="424" class="m">+ 20% failure × direct cost</text>
-  <line x1="832" y1="444" x2="1128" y2="444" stroke="#2f3770"/>
+  <line x1="832" y1="444" x2="1128" y2="444" stroke="#dde2f0"/>
   <text x="832" y="468" class="t" font-weight="600">Example · 6.1 Sol, 120k context</text>
   <text x="832" y="490" class="s">2k-token lookup, 300 written, 2 turns</text>
   <text x="832" y="512" class="m">direct $0.0330 · Luna $0.0387</text>
@@ -197,7 +197,7 @@
 
   <!-- ============ LOCAL WORKER GATE (bottom) ============ -->
   
-  <rect x="60" y="1320" width="1090" height="228" rx="18" class="off" fill="#141938"/>
+  <rect x="60" y="1320" width="1090" height="228" rx="18" class="off" fill="#fafbfe"/>
   <text x="84" y="1352" class="h">7 · Add your own local workers (optional, off by default)</text>
   <text x="84" y="1376" class="s">Self-hosting a model (llama.cpp, vLLM, LM Studio, Ollama…)? It can take ordinary units before Luna at zero paid cost.</text>
 

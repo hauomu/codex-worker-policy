@@ -17,7 +17,7 @@ A [Codex](https://developers.openai.com/codex) skill that makes expensive models
 
 ## How it works
 
-<p align="center"><img src="assets/routing.svg" alt="Flowchart of the worker-policy routing: identity gate, partition, bulk check, route_cost.py hard-cap and margin checks, delegation, and the escalation ladder from local workers (off by default) to gpt-6-luna to break-glass" width="100%"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/routing-dark.svg"><img src="assets/routing.svg" alt="Flowchart of the worker-policy routing: identity gate, partition, bulk check, route_cost.py hard-cap and margin checks, delegation, and the escalation ladder from local workers (off by default) to gpt-6-luna to break-glass" width="100%"></picture></p>
 
 ## Install
 
