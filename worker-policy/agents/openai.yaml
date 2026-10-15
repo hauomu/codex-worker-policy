@@ -1,3 +1,5 @@
 interface:
   display_name: "Worker Policy"
   short_description: "MUST route Sol/Astra work to cheap workers; Luna works directly"
+  icon_small: "./assets/worker-policy-small.svg"
+  icon_large: "./assets/worker-policy.png"
