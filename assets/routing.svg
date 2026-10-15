@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1640" width="1200" height="1640" role="img" aria-labelledby="title desc" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title id="title">How worker-policy routes work</title>
+  <desc id="desc">Flowchart: an identity gate, partitioning into units, a bulk check, route_cost.py's hard-cap and margin checks, and an escalation ladder from local workers (disabled by default) to gpt-6-luna to break-glass. A side panel explains the cost model.</desc>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8f9bd0"/>
+    </marker>
+    <marker id="arrGold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#ffb93f"/>
+    </marker>
+    <style>
+      .node { fill: #1c2350; stroke: #3d4789; stroke-width: 1.5; }
+      .sol { fill: #2e2a3f; stroke: #ffb93f; stroke-width: 2; }
+      .luna { fill: #222a55; stroke: #c3cdf3; stroke-width: 2; }
+      .off { fill: #161b3c; stroke: #6c76a8; stroke-width: 1.5; stroke-dasharray: 7 6; }
+      .glass { fill: #3a2233; stroke: #ff7a6b; stroke-width: 2; }
+      .panel { fill: #151a3a; stroke: #2f3770; stroke-width: 1.5; }
+      .h { fill: #f1f3ff; font-size: 17px; font-weight: 600; }
+      .t { fill: #dfe4ff; font-size: 14.5px; }
+      .s { fill: #a9b2da; font-size: 13px; }
+      .m { fill: #dfe4ff; font-size: 13px; font-family: Consolas, Menlo, monospace; }
+      .lab { fill: #a9b2da; font-size: 12.5px; font-style: italic; }
+      .yes { fill: #ffcf6b; font-size: 12.5px; font-weight: 600; }
+      .no { fill: #c3cdf3; font-size: 12.5px; font-weight: 600; }
+      .line { stroke: #8f9bd0; stroke-width: 2; fill: none; }
+      .gold { stroke: #ffb93f; stroke-width: 2.5; fill: none; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="1640" rx="28" fill="#0f1430"/>
+
+  <!-- header -->
+  <text x="60" y="66" fill="#ffffff" font-size="30" font-weight="700">How worker-policy routes work</text>
+  <text x="60" y="96" class="s" font-size="15">Sol and Astra plan, brief and integrate. Cheap Luna workers do the reading and writing.</text>
+
+  <!-- ============ MAIN FLOW (x 60–760) ============ -->
+
+  <!-- 1. task arrives -->
+  <rect x="300" y="128" width="240" height="46" rx="23" class="node"/>
+  <text x="420" y="157" class="h" text-anchor="middle">A task arrives</text>
+  <path d="M420 174 L420 204" class="line" marker-end="url(#arr)"/>
+
+  <!-- 2. identity gate -->
+  <rect x="170" y="206" width="500" height="58" rx="14" class="node"/>
+  <text x="420" y="232" class="h" text-anchor="middle">1 · Identity gate</text>
+  <text x="420" y="253" class="s" text-anchor="middle">Which model is running this turn? (from host metadata, never guessed)</text>
+
+  <!-- gate outcomes -->
+  <path d="M260 264 L170 300" class="line" marker-end="url(#arr)"/>
+  <path d="M420 264 L420 300" class="gold" marker-end="url(#arrGold)"/>
+  <path d="M580 264 L668 300" class="line" marker-end="url(#arr)"/>
+  <rect x="60" y="302" width="210" height="58" rx="12" class="luna"/>
+  <text x="165" y="326" class="t" text-anchor="middle" font-weight="600">Luna</text>
+  <text x="165" y="346" class="s" text-anchor="middle">works directly, never spawns</text>
+  <rect x="320" y="302" width="200" height="58" rx="12" class="sol"/>
+  <text x="420" y="326" class="t" text-anchor="middle" font-weight="600">Sol / Astra</text>
+  <text x="420" y="346" class="s" text-anchor="middle">full policy below</text>
+  <rect x="570" y="302" width="190" height="27" rx="9" class="node"/>
+  <text x="665" y="321" class="s" text-anchor="middle">Other provider → policy off</text>
+  <rect x="570" y="334" width="190" height="27" rx="9" class="node"/>
+  <text x="665" y="353" class="s" text-anchor="middle">Unknown → ask the user</text>
+
+  <!-- 3. partition -->
+  <path d="M420 360 L420 392" class="gold" marker-end="url(#arrGold)"/>
+  <rect x="250" y="394" width="340" height="52" rx="14" class="node"/>
+  <text x="420" y="418" class="h" text-anchor="middle">2 · Partition into units</text>
+  <text x="420" y="437" class="s" text-anchor="middle">and roughly size each: tokens to read, write, tool turns</text>
+
+  <!-- 4. bulk check -->
+  <path d="M420 446 L420 476" class="line" marker-end="url(#arr)"/>
+  <rect x="170" y="478" width="500" height="62" rx="14" class="node"/>
+  <text x="420" y="504" class="h" text-anchor="middle">3 · Obviously bulk work?</text>
+  <text x="420" y="526" class="s" text-anchor="middle">crawls · corpus reduction · multi-file changes · debugging · test runs</text>
+  <path d="M670 509 L796 509" class="line"/>
+  <text x="704" y="500" class="yes">yes</text>
+
+  <!-- 5. route_cost.py -->
+  <path d="M420 540 L420 584" class="line" marker-end="url(#arr)"/>
+  <text x="430" y="566" class="no">no, small or borderline</text>
+  <rect x="120" y="586" width="600" height="214" rx="18" fill="none" stroke="#ffb93f" stroke-width="1.5" stroke-dasharray="4 5"/>
+  <text x="140" y="612" class="m" fill="#ffcf6b">4 · python scripts/route_cost.py --model … --read … --output … --turns …</text>
+
+  <rect x="170" y="628" width="500" height="58" rx="14" class="node"/>
+  <text x="420" y="652" class="h" text-anchor="middle">Within the hard caps?</text>
+  <text x="420" y="674" class="s" text-anchor="middle">≤ 6k tokens read · ≤ 1.5k written · ≤ 4 tool turns</text>
+  <path d="M670 657 L796 657" class="line"/>
+  <text x="684" y="648" class="no">no</text>
+  
+
+  <path d="M420 686 L420 714" class="line" marker-end="url(#arr)"/>
+  <text x="430" y="706" class="yes">yes</text>
+  <rect x="170" y="716" width="500" height="58" rx="14" class="node"/>
+  <text x="420" y="740" class="h" text-anchor="middle">Is doing it directly ≥ 20% cheaper?</text>
+  <text x="420" y="762" class="s" text-anchor="middle">than the best delegated route (see the cost model →)</text>
+  <path d="M670 745 L796 745" class="line"/>
+  <text x="684" y="736" class="no">no</text>
+  
+
+  <!-- direct outcome -->
+  <path d="M300 774 L230 830" class="gold" marker-end="url(#arrGold)"/>
+  <text x="262" y="826" class="yes">yes</text>
+  <rect x="60" y="832" width="300" height="70" rx="14" class="sol"/>
+  <text x="210" y="858" class="h" text-anchor="middle">Orchestrator does it</text>
+  <text x="210" y="879" class="m" text-anchor="middle" fill="#ffcf6b">DIRECT_CHEAPER</text>
+  <text x="210" y="895" class="s" text-anchor="middle">tiny units only</text>
+
+  <!-- right rail collecting every delegate decision -->
+  <path d="M796 509 L796 866 L742 866" class="line" marker-end="url(#arr)"/>
+
+  <!-- 6. delegate -->
+  <rect x="420" y="832" width="320" height="70" rx="14" class="luna"/>
+  <text x="580" y="858" class="h" text-anchor="middle">5 · Delegate</text>
+  <text x="580" y="879" class="s" text-anchor="middle">one complete brief: goal, acceptance,</text>
+  <text x="580" y="895" class="s" text-anchor="middle">paths, commands, output shape, turn budget</text>
+
+  <!-- 7. escalation ladder -->
+  <path d="M580 902 L580 934" class="line" marker-end="url(#arr)"/>
+  <rect x="420" y="936" width="320" height="58" rx="14" class="off"/>
+  <text x="580" y="960" class="h" text-anchor="middle" fill="#c5cbe8">LOCAL_DEFAULT · your own model</text>
+  <text x="580" y="981" class="s" text-anchor="middle">off by default · skipped · see step 7 below</text>
+  <path d="M580 994 L580 1026" class="line" marker-end="url(#arr)"/>
+  <text x="592" y="1015" class="lab">if disabled, or after 2 genuine failures</text>
+  <rect x="420" y="1028" width="320" height="58" rx="14" class="luna"/>
+  <text x="580" y="1052" class="h" text-anchor="middle">FRONTIER_WORKER · gpt-6-luna</text>
+  <text x="580" y="1073" class="s" text-anchor="middle">~1/20 the price of 6.1 Sol</text>
+  <path d="M580 1086 L580 1118" class="line" marker-end="url(#arr)"/>
+  <text x="592" y="1107" class="lab">only after 2 genuine failures</text>
+  <rect x="420" y="1120" width="320" height="70" rx="14" class="glass"/>
+  <text x="580" y="1145" class="h" text-anchor="middle">ORCHESTRATOR_BREAK_GLASS</text>
+  <text x="580" y="1165" class="s" text-anchor="middle">last resort · all 4 conditions must hold</text>
+  <text x="580" y="1182" class="s" text-anchor="middle">recorded before acting, never retroactively</text>
+
+  <!-- never escalates note -->
+  <rect x="110" y="950" width="290" height="124" rx="14" class="panel"/>
+  <text x="128" y="978" class="t" font-weight="600">These never escalate</text>
+  <text x="128" y="1002" class="s">· normal turn boundaries</text>
+  <text x="128" y="1022" class="s">· malformed tool calls, transport errors</text>
+  <text x="128" y="1042" class="s">· service restarts</text>
+  <text x="128" y="1062" class="s">· a busy queue (queueing beats paying)</text>
+
+  <!-- 8. integrate -->
+  
+  <path d="M80 902 L80 1248 L318 1248" class="line" marker-end="url(#arr)"/>
+  <path d="M580 1190 L580 1214" class="line" marker-end="url(#arr)"/>
+  <rect x="320" y="1216" width="440" height="64" rx="14" class="node"/>
+  <text x="540" y="1242" class="h" text-anchor="middle">6 · Integrate the summary, then completion gate</text>
+  <text x="540" y="1264" class="s" text-anchor="middle">files changed · commands run · outcome · limitations · next step</text>
+
+  <!-- ============ SIDE PANELS (x 810–1150) ============ -->
+
+  <rect x="810" y="128" width="340" height="430" rx="18" class="panel"/>
+  <text x="832" y="160" class="h">The cost model (route_cost.py)</text>
+  <text x="832" y="186" class="s">Every orchestrator turn re-reads its whole</text>
+  <text x="832" y="204" class="s">context. Anything it reads stays resident</text>
+  <text x="832" y="222" class="s">and is paid again on every later turn.</text>
+  <text x="832" y="256" class="t" font-weight="600" fill="#ffcf6b">Direct</text>
+  <text x="832" y="278" class="m">turns × context × cached</text>
+  <text x="832" y="296" class="m">+ read × (input + later turns × cached)</text>
+  <text x="832" y="314" class="m">+ written × output price</text>
+  <text x="832" y="348" class="t" font-weight="600" fill="#c3cdf3">Delegate to Luna</text>
+  <text x="832" y="370" class="m">2 turns × context × cached</text>
+  <text x="832" y="388" class="m">+ brief + resident summary</text>
+  <text x="832" y="406" class="m">+ Luna's own tokens</text>
+  <text x="832" y="424" class="m">+ 20% failure × direct cost</text>
+  <line x1="832" y1="444" x2="1128" y2="444" stroke="#2f3770"/>
+  <text x="832" y="468" class="t" font-weight="600">Example · 6.1 Sol, 120k context</text>
+  <text x="832" y="490" class="s">2k-token lookup, 300 written, 2 turns</text>
+  <text x="832" y="512" class="m">direct $0.0330 · Luna $0.0387</text>
+  <text x="832" y="534" class="s">Cheaper, but not by 20% → delegate</text>
+
+  <rect x="810" y="580" width="340" height="128" rx="18" class="panel"/>
+  <text x="832" y="610" class="h">Never a cost decision</text>
+  <text x="832" y="636" class="s">Credentials, deployment, external or</text>
+  <text x="832" y="654" class="s">high-risk changes go to the user under</text>
+  <text x="832" y="672" class="s">normal confirmation rules, whatever</text>
+  <text x="832" y="690" class="s">route_cost.py would say.</text>
+
+  <rect x="810" y="730" width="340" height="250" rx="18" class="panel"/>
+  <text x="832" y="760" class="h">Supervising workers</text>
+  <text x="832" y="788" class="s">· always pass model: "gpt-6-luna"</text>
+  <text x="832" y="812" class="s">· brief once, completely</text>
+  <text x="832" y="836" class="s">· wait, don't poll; workers report once</text>
+  <text x="832" y="860" class="s">· one unit per worker, then retire it</text>
+  <text x="832" y="884" class="s">· stop at ~150 turns or first compaction</text>
+  <text x="832" y="908" class="s">· workers never spawn workers</text>
+  <text x="832" y="940" class="s" font-style="italic">Chatty supervision once cost more than</text>
+  <text x="832" y="958" class="s" font-style="italic">31 Luna workers combined.</text>
+
+  <rect x="810" y="1002" width="340" height="188" rx="18" class="panel"/>
+  <text x="832" y="1032" class="h">Context check (advisory)</text>
+  <text x="832" y="1058" class="m">python scripts/context_status.py</text>
+  <text x="832" y="1084" class="s">Run before spawning, after integrating,</text>
+  <text x="832" y="1102" class="s">after a unit, before a big read.</text>
+  <text x="832" y="1126" class="s">At ~400k (6.1 Sol) it prompts the user to</text>
+  <text x="832" y="1144" class="s">consider a handover. It never stops work</text>
+  <text x="832" y="1162" class="s">on its own.</text>
+
+  <!-- ============ LOCAL WORKER GATE (bottom) ============ -->
+  
+  <rect x="60" y="1320" width="1090" height="228" rx="18" class="off" fill="#141938"/>
+  <text x="84" y="1352" class="h">7 · Add your own local workers (optional, off by default)</text>
+  <text x="84" y="1376" class="s">Self-hosting a model (llama.cpp, vLLM, LM Studio, Ollama…)? It can take ordinary units before Luna at zero paid cost.</text>
+
+  <text x="84" y="1410" class="t" font-weight="600">Turn it on</text>
+  <text x="84" y="1434" class="s">1. Run an MCP server that exposes your model as bounded worker tools</text>
+  <text x="84" y="1456" class="s">2. Register it in ~/.codex/config.toml under [mcp_servers.&lt;name&gt;]</text>
+  <text x="84" y="1478" class="s">3. In references/worker-routing.json set:</text>
+  <text x="104" y="1500" class="m">"local": { "enabled": true, "server": "&lt;name&gt;", "tools": [ … ] }</text>
+  <text x="104" y="1520" class="m">"LOCAL_DEFAULT" / "LOCAL_QUALITY" / "LOCAL_ALTERNATE": "&lt;model id&gt;"</text>
+  <text x="84" y="1540" class="s">4. Check it: python tests/policy_lint.py</text>
+
+  <text x="700" y="1410" class="t" font-weight="600">What changes once it's on</text>
+  <text x="700" y="1434" class="s">· delegated units go to LOCAL_DEFAULT first</text>
+  <text x="700" y="1456" class="s">· Luna becomes the fallback after 2 genuine failures</text>
+  <text x="700" y="1478" class="s">· route_cost.py compares direct work against</text>
+  <text x="712" y="1496" class="s">the (nearly free) local route instead of Luna</text>
+  <text x="700" y="1518" class="s">· Luna sessions can delegate to local workers</text>
+  <text x="700" y="1540" class="s">Contract details: references/local-workers.md</text>
+
+  <!-- legend -->
+  <g transform="translate(60 1578)">
+    <rect width="26" height="18" rx="5" class="sol"/>
+    <text x="36" y="14" class="s">Sol / orchestrator</text>
+    <rect x="190" width="26" height="18" rx="5" class="luna"/>
+    <text x="226" y="14" class="s">Luna / worker</text>
+    <rect x="360" width="26" height="18" rx="5" class="off"/>
+    <text x="396" y="14" class="s">disabled by default</text>
+    <rect x="560" width="26" height="18" rx="5" class="glass"/>
+    <text x="596" y="14" class="s">last resort</text>
+  </g>
+  <text x="1150" y="1592" class="s" text-anchor="end">github.com/hauomu/codex-worker-policy</text>
+</svg>

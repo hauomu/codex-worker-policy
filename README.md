@@ -15,6 +15,10 @@ A [Codex](https://developers.openai.com/codex) skill that makes expensive models
 - **Advisory context check.** `scripts/context_status.py` reports the session's context size and suggests a handover before auto-compaction. It never stops work by itself.
 - **Optional local workers.** If you host your own model behind an MCP server, it can take ordinary units before Luna at zero marginal cost. This route ships **disabled**; see [local workers](worker-policy/references/local-workers.md).
 
+## How it works
+
+<p align="center"><img src="assets/routing.svg" alt="Flowchart of the worker-policy routing: identity gate, partition, bulk check, route_cost.py hard-cap and margin checks, delegation, and the escalation ladder from local workers (off by default) to gpt-6-luna to break-glass" width="100%"></p>
+
 ## Install
 
 Requires Codex with skills support and Python 3.10+.
@@ -59,6 +63,35 @@ python scripts/context_status.py
 - **Prices:** `references/pricing.json` (machine-readable) and `references/pricing.md` (sources). Prices were checked on 2026-10-13; update both when OpenAI changes them. Cost-model tunables are documented in `pricing.md`.
 - **Worker roles:** `references/worker-routing.json`. `FRONTIER_WORKER` is `gpt-6-luna`; the local roles stay `null` until you enable local workers.
 - **Model names** reflect OpenAI's lineup as of October 2026. Unknown model ids are priced as the default orchestrator.
+
+## Adding your own local workers (optional)
+
+If you host your own model (llama.cpp, vLLM, LM Studio, Ollama, …), it can take ordinary units **before** Luna at zero marginal paid cost. The route is built in but switched off, because most people don't run one.
+
+1. Run an MCP server that exposes your model as **bounded worker tools**: each call does one bounded turn (for example 240 s and 10 tool operations) and returns a status such as `COMPLETE`, `CONTINUE`, `SEMANTIC_FAILURE` or `BLOCKED`, plus an evidence summary rather than a transcript.
+2. Register it in `~/.codex/config.toml` under `[mcp_servers.<name>]`.
+3. Turn the gate on in `worker-policy/references/worker-routing.json`:
+
+   ```json
+   "local": { "enabled": true, "server": "<name>", "tools": ["<exact tool names>"] },
+   "roles": {
+     "LOCAL_DEFAULT": "<model id>",
+     "LOCAL_QUALITY": "<model id>",
+     "LOCAL_ALTERNATE": "<model id>",
+     "FRONTIER_WORKER": "gpt-6-luna"
+   }
+   ```
+
+4. Run `python tests/policy_lint.py`. It refuses an enabled local route that is missing its server, tools or role models.
+
+Once it is on:
+
+- delegated units go to `LOCAL_DEFAULT` first, and Luna becomes the fallback after two genuine failures;
+- `route_cost.py` compares direct work against the (nearly free) local route instead of Luna, so direct work is chosen even more rarely;
+- Luna sessions may delegate to local workers too (they still never spawn paid workers);
+- a stopped model server that starts on demand, a busy queue, or a transport error is not a failure and never escalates.
+
+Set `"enabled": false` to switch back; nothing else needs to change. The full worker contract, including attempt accounting for controller authors, is in [local-workers.md](worker-policy/references/local-workers.md).
 
 ## License: free to use, not for resale
 
