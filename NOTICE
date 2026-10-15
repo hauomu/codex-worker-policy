@@ -1,12 +1,23 @@
 codex-worker-policy
-Copyright 2026 hauomu (https://github.com/hauomu)
+Copyright 2026 Sherman (GitHub: hauomu, https://github.com/hauomu)
 
-Licensed under the Apache License, Version 2.0, with the "Commons Clause"
-License Condition v1.0. See LICENSE.
+Licensor: Sherman (GitHub: hauomu)
 
-You may use, modify and share this software for free, including at work.
-You may not Sell it: you may not provide to third parties, for a fee or other
-consideration, a product or service whose value derives, entirely or
-substantially, from this software (for example, bundling this policy into a
-paid agent harness or platform as a feature). Any redistribution must keep
-this NOTICE and the LICENSE, including the Commons Clause.
+This product is licensed under the Apache License, Version 2.0, WITH the
+"Commons Clause" License Condition v1.0. It is NOT plain Apache-2.0.
+
+Commons Clause License Condition notice (required to be kept with any
+redistribution): the grant of rights under the License does not include
+the right to Sell the Software. "Sell" means providing to third parties,
+for a fee or other consideration (including fees for hosting or
+consulting/support services related to the Software), a product or service
+whose value derives, entirely or substantially, from the functionality of
+the Software.
+
+In practice: you may use, modify and share this skill for free, including
+at work. You may not sell it, or bundle it into a paid product, platform,
+agent harness or hosted service as a feature, without the Licensor's
+written permission. Keep this NOTICE and the LICENSE (both parts) with any
+copy or modified version, and credit the Licensor.
+
+See LICENSE for the full binding terms.

@@ -58,8 +58,18 @@ python scripts/context_status.py
 - **Worker roles:** `references/worker-routing.json`. `FRONTIER_WORKER` is `gpt-6-luna`; the local roles stay `null` until you enable local workers.
 - **Model names** reflect OpenAI's lineup as of October 2026. Unknown model ids are priced as the default orchestrator.
 
-## License
+## License: free to use, not for resale
 
-[Apache License 2.0](LICENSE) with the [Commons Clause](https://commonsclause.com/) condition. In short: use it, change it and share it for free, including at work, with credit. You may not sell it, or sell a product or service whose value comes substantially from it, such as bundling it into a paid agent harness or platform as a feature. Because of that condition, this is source-available rather than OSI-approved open source. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the binding terms.
+> **This is not plain Apache-2.0.** It is the [Apache License 2.0](LICENSE) **with the [Commons Clause](https://commonsclause.com/) condition**, which removes the right to sell the software.
+>
+> **Licensor:** Sherman ([@hauomu](https://github.com/hauomu))
+
+| You may, for free | You may not, without written permission |
+| --- | --- |
+| Use it for personal, hobby, research or work purposes, including inside a company for your own or your team's work | Sell this skill or a modified version of it |
+| Read, copy, modify and fork it | Build it into a paid product, platform, agent harness, IDE, plugin or hosted service where its functionality is all or a substantial part of what customers pay for |
+| Share it or your modified version for free, keeping [LICENSE](LICENSE) and [NOTICE](NOTICE) and crediting the licensor | Charge for hosting, consulting or support whose value comes substantially from it |
+
+Because of the Commons Clause this is **source-available**, not OSI-approved open source. The table is a summary; [LICENSE](LICENSE) is binding. For commercial licensing, contact [@hauomu](https://github.com/hauomu).
 
 Not affiliated with or endorsed by OpenAI.

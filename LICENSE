@@ -1,3 +1,43 @@
+=====================================================================
+  NOT PLAIN APACHE-2.0: COMMERCIAL RESALE IS NOT PERMITTED
+=====================================================================
+
+codex-worker-policy is licensed under the Apache License 2.0 WITH the
+"Commons Clause" License Condition v1.0. The Commons Clause REMOVES the
+right to Sell the Software. Both parts below are binding.
+
+Licensor:  Sherman (GitHub: hauomu, https://github.com/hauomu)
+Software:  codex-worker-policy (https://github.com/hauomu/codex-worker-policy)
+Copyright: Copyright 2026 Sherman (hauomu)
+
+Plain-English summary (the full terms below control):
+
+  YOU MAY, free of charge:
+    - use this skill for personal, hobby, research or work purposes,
+      including inside a company for your own or your team's work;
+    - read, copy, modify and fork it;
+    - share it or your modified version, for free, with this LICENSE
+      and NOTICE kept intact and credit to the Licensor.
+
+  YOU MAY NOT, without separate written permission from the Licensor:
+    - sell this skill or a modified version of it;
+    - include it in a paid product, platform, agent harness, IDE, plugin,
+      marketplace listing or hosted service where its functionality is
+      all or a substantial part of what customers pay for (for example,
+      advertising "built-in cost-aware worker delegation" powered by it);
+    - charge for hosting, consulting or support services whose value
+      comes entirely or substantially from this skill;
+    - remove or hide this condition when redistributing.
+
+For commercial licensing, contact the Licensor via https://github.com/hauomu.
+
+Because of the Commons Clause this is source-available software, not
+OSI-approved open source.
+
+---------------------------------------------------------------------
+PART 1 OF 2: "Commons Clause" License Condition v1.0 (verbatim)
+---------------------------------------------------------------------
+
 "Commons Clause" License Condition v1.0
 
 The Software is provided to you by the Licensor under the License, as defined below, subject to the following condition.
@@ -8,8 +48,11 @@ For purposes of the foregoing, "Sell" means practicing any or all of the rights 
 
 Software: codex-worker-policy
 License: Apache 2.0
-Licensor: hauomu
+Licensor: Sherman (GitHub: hauomu)
 
+---------------------------------------------------------------------
+PART 2 OF 2: Apache License, Version 2.0 (verbatim), as modified by
+the Commons Clause condition above
 ---------------------------------------------------------------------
                                  Apache License
                            Version 2.0, January 2004
