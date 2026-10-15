@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="t d">
+  <title id="t">codex-worker-policy</title>
+  <desc id="d">A big smiling sun mascot holds hands with a small smiling moon mascot, like a parent holding a child's hand.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b2a52"/>
+      <stop offset="0.55" stop-color="#1d2148"/>
+      <stop offset="1" stop-color="#0b1026"/>
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="0.38" cy="0.44" r="0.5">
+      <stop offset="0" stop-color="#ffc560" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffc560" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="solBody" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#ffe08a"/>
+      <stop offset="0.7" stop-color="#ffb93f"/>
+      <stop offset="1" stop-color="#f39a2c"/>
+    </radialGradient>
+    <radialGradient id="lunaBody" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.7" stop-color="#dbe2ff"/>
+      <stop offset="1" stop-color="#aab7ea"/>
+    </radialGradient>
+    <rect id="ray" x="-10" y="-152" width="20" height="34" rx="10"/>
+    <clipPath id="frame"><rect width="512" height="512" rx="112"/></clipPath>
+    <clipPath id="lunaClip"><circle cx="396" cy="378" r="58"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="512" height="512" fill="url(#sky)"/>
+    <rect width="512" height="512" fill="url(#sunGlow)"/>
+
+    <!-- stars -->
+    <g fill="#e3e8ff">
+      <circle cx="430" cy="92" r="3"/>
+      <circle cx="470" cy="170" r="2.2"/>
+      <circle cx="384" cy="150" r="2"/>
+      <circle cx="60" cy="440" r="2.4"/>
+      <circle cx="300" cy="470" r="2"/>
+      <path d="M446 238 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/>
+      <path d="M96 70 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z" opacity="0.8"/>
+    </g>
+
+    <!-- shared ground shadows -->
+    <ellipse cx="200" cy="446" rx="72" ry="8" fill="#000" opacity="0.22"/>
+    <ellipse cx="396" cy="446" rx="36" ry="5" fill="#000" opacity="0.22"/>
+
+    <!-- SOL: big sun mascot -->
+    <g transform="translate(196 228)">
+      <!-- legs and feet (behind the body) -->
+      <g stroke="#f29a33" stroke-width="15" stroke-linecap="round" fill="none">
+        <path d="M-28 96 L -32 204"/>
+        <path d="M28 96 L 34 204"/>
+      </g>
+      <ellipse cx="-42" cy="211" rx="22" ry="11" fill="#ee8a26"/>
+      <ellipse cx="46" cy="211" rx="22" ry="11" fill="#ee8a26"/>
+      <!-- free arm, waving -->
+      <path d="M-92 -50 Q -120 -62 -130 -96" fill="none" stroke="#f29a33" stroke-width="15" stroke-linecap="round"/>
+      <circle cx="-132" cy="-104" r="13" fill="#ffb53f" stroke="#e0861f" stroke-width="2.5"/>
+      <g fill="#ffc24e">
+        <use xlink:href="#ray"/>
+        <use xlink:href="#ray" transform="rotate(30)"/>
+        <use xlink:href="#ray" transform="rotate(60)"/>
+        <use xlink:href="#ray" transform="rotate(90)"/>
+        <use xlink:href="#ray" transform="rotate(150)"/>
+        <use xlink:href="#ray" transform="rotate(210)"/>
+        <use xlink:href="#ray" transform="rotate(240)"/>
+        <use xlink:href="#ray" transform="rotate(270)"/>
+        <use xlink:href="#ray" transform="rotate(330)"/>
+      </g>
+      <circle r="110" fill="url(#solBody)"/>
+      <!-- face, looking down toward Luna -->
+      <ellipse cx="-30" cy="-6" rx="11" ry="15" fill="#3d2615"/>
+      <ellipse cx="36" cy="-2" rx="11" ry="15" fill="#3d2615"/>
+      <circle cx="-26" cy="-11" r="4" fill="#fff"/>
+      <circle cx="40" cy="-7" r="4" fill="#fff"/>
+      <circle cx="-58" cy="26" r="15" fill="#ff7a6b" opacity="0.45"/>
+      <circle cx="66" cy="32" r="15" fill="#ff7a6b" opacity="0.45"/>
+      <path d="M-14 36 Q 6 58 30 38" fill="none" stroke="#3d2615" stroke-width="7" stroke-linecap="round"/>
+    </g>
+
+    <!-- arms reaching for each other -->
+    <path d="M298 270 Q 326 276 330 300" fill="none" stroke="#f29a33" stroke-width="15" stroke-linecap="round"/>
+    <path d="M354 330 Q 340 336 333 326" fill="none" stroke="#c3cdf3" stroke-width="10" stroke-linecap="round"/>
+
+    <!-- LUNA: small moon mascot (drawn 16px higher so both stand on the same ground) -->
+    <g transform="translate(0 -16)">
+      <!-- legs and feet (behind the body) -->
+      <g stroke="#c3cdf3" stroke-width="9" stroke-linecap="round" fill="none">
+        <path d="M382 428 L 380 450"/>
+        <path d="M410 428 L 412 450"/>
+      </g>
+      <ellipse cx="374" cy="456" rx="13" ry="7" fill="#aab7ea"/>
+      <ellipse cx="418" cy="456" rx="13" ry="7" fill="#aab7ea"/>
+      <!-- free arm, waving back -->
+      <path d="M450 366 Q 470 362 474 338" fill="none" stroke="#c3cdf3" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="475" cy="332" r="8" fill="#eef1ff" stroke="#9eabe4" stroke-width="2"/>
+      <circle cx="396" cy="378" r="58" fill="url(#lunaBody)"/>
+      <!-- soft crescent shadow and craters -->
+      <g clip-path="url(#lunaClip)">
+        <circle cx="430" cy="392" r="58" fill="#8d9bdb" opacity="0.28"/>
+        <circle cx="428" cy="350" r="7" fill="#b6c1ef"/>
+        <circle cx="440" cy="398" r="5" fill="#b6c1ef"/>
+        <circle cx="418" cy="418" r="4" fill="#b6c1ef"/>
+      </g>
+      <!-- face, looking up toward Sol -->
+      <ellipse cx="376" cy="368" rx="6.5" ry="9" fill="#2a3060"/>
+      <ellipse cx="404" cy="366" rx="6.5" ry="9" fill="#2a3060"/>
+      <circle cx="374" cy="364" r="2.4" fill="#fff"/>
+      <circle cx="402" cy="362" r="2.4" fill="#fff"/>
+      <circle cx="362" cy="388" r="8" fill="#ff8fa3" opacity="0.45"/>
+      <circle cx="420" cy="386" r="8" fill="#ff8fa3" opacity="0.45"/>
+      <path d="M382 390 Q 391 399 400 389" fill="none" stroke="#2a3060" stroke-width="4" stroke-linecap="round"/>
+    </g>
+
+    <!-- the held hands: Luna's small hand reaches up into Sol's bigger hand -->
+    <circle cx="332" cy="322" r="9.5" fill="#eef1ff" stroke="#9eabe4" stroke-width="2"/>
+    <path d="M316 302 Q 314 290 326 290 L 340 292 Q 352 296 348 310 Q 344 322 330 320 Q 316 318 316 302 Z" fill="#ffb53f" stroke="#e0861f" stroke-width="2.5"/>
+    <path d="M340 294 Q 352 302 346 314" fill="none" stroke="#e0861f" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M318 300 Q 312 312 322 318" fill="none" stroke="#ffd27a" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>

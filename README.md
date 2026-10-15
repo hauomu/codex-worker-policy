@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.svg" width="200" alt="A big sun mascot holding hands with a small moon mascot"></p>
+
 # codex-worker-policy
 
 A [Codex](https://developers.openai.com/codex) skill that makes expensive models act as **orchestrators** and hand the actual work to cheap workers, so a session spends a fraction of the paid tokens it otherwise would.
