@@ -1,5 +1,5 @@
 {
-  "version": "routing-v2-public",
+  "version": "routing-v3-public",
   "local": {
     "enabled": false,
     "note": "Set enabled to true only after installing a local worker MCP server. See references/local-workers.md.",
@@ -10,7 +10,15 @@
     "LOCAL_DEFAULT": null,
     "LOCAL_QUALITY": null,
     "LOCAL_ALTERNATE": null,
-    "FRONTIER_WORKER": "gpt-6-luna"
+    "FRONTIER_WORKER": {"model": "gpt-6-luna", "effort": "high"},
+    "FRONTIER_RETRY": {"model": "gpt-6-luna", "effort": "max"},
+    "SOL_WORKER": {"model": "gpt-6.1-sol", "effort": "low"},
+    "CLEANUP_WORKER": {"model": "gpt-6-luna", "effort": "high"}
+  },
+  "ladder": ["FRONTIER_WORKER", "FRONTIER_RETRY", "SOL_WORKER"],
+  "cleanup": {
+    "defaultBudgetLines": 200,
+    "maxCommentRatio": 0.35
   },
   "disabledModels": []
 }

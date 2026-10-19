@@ -103,6 +103,7 @@
     "directMaxOutputTokens": 1500,
     "directMaxTurns": 4,
     "longContextThreshold": 272000,
-    "frontierFailureRate": 0.2
+    "unitHardness": 0.5,
+    "failurePenaltyUsd": 0.10
   }
 }

@@ -35,7 +35,7 @@ Fast mode burns included usage at 2.5× (credits 2×); Ultrafast at 8× (credits
 
 ## Ratios that drive routing
 
-- **Luna vs 6.1 Sol:** 20× cheaper input and output, 10× cheaper cached input.
+- **Luna vs 6.1 Sol:** 20× cheaper input and output, 10× cheaper cached input. Per *solved* task the gap is much smaller, because Luna spends more tokens and fails more; see [model-performance.md](model-performance.md).
 - **Astra vs 6.1 Sol:** 5× input/output, 10× cached. An Astra orchestrator makes every delegation decision stronger in favour of workers.
 - **6.1 Sol cached input is 5% of its input price** (most models are 10%), so re-reading a long context is relatively cheap on 6.1 Sol; reading *new* material is what costs.
 - A local worker, when enabled, has zero marginal paid cost; latency, bounded interfaces, and retry risk still matter, so the cost model includes a local failure rate.
@@ -49,7 +49,9 @@ Fast mode burns included usage at 2.5× (credits 2×); Ultrafast at 8× (credits
 | `briefTokens` / `summaryTokens` | 400 / 600 | Cost of writing a brief and keeping a worker's summary resident. |
 | `delegationTurns` | 2 | Orchestrator turns spent spawning and integrating. |
 | `frontierBaseTokens` | 15,000 | Baseline context a fresh worker starts with. |
-| `localFailureRate` / `frontierFailureRate` | 0.2 / 0.2 | Probability a delegated unit fails and falls back up the ladder. |
+| `localFailureRate` | 0.2 | Probability a local unit fails and falls back to the paid ladder. |
+| `unitHardness` | 0.5 | Paid rungs fail with probability (1 − benchmark score) × this; a typical unit is easier than a benchmark task. |
+| `failurePenaltyUsd` | 0.10 | Orchestrator cost of one failed attempt, used by `route_cost.py --rank`. |
 | `directMargin` | 0.8 | Direct work must be at least 20% cheaper than delegating. |
 | `directMaxReadTokens` / `directMaxOutputTokens` / `directMaxTurns` | 6,000 / 1,500 / 4 | Hard caps: above any of these, direct work is never selected. |
 | `longContextThreshold` | 272,000 | Long-context pricing applies above this (per-model override allowed). |

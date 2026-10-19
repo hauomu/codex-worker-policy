@@ -5,7 +5,7 @@ description: MUST apply cost-aware delegation for OpenAI Sol and Astra runtime m
 
 # Worker Policy
 
-Goal: finish the mission-critical work while spending the fewest paid tokens. `gpt-6-luna` costs about 1/20 of `gpt-6.1-sol` (1/100 of `gpt-6-astra`), and the orchestrator itself is the most expensive worker. Subscription credits are 25× API dollars for every model, so the same ranking holds for your plan allowance. Every token that enters the orchestrator's context is paid once at the input rate, then again (at the cached rate) on every later turn. Reading bulk material yourself is the costliest mistake. The runtime model filling the `ORCHESTRATOR` role is the supervisory control-plane agent: it partitions work, sets acceptance criteria, routes, integrates, and reports.
+Goal: finish the mission-critical work while spending the fewest paid tokens per **solved** unit. `gpt-6-luna`'s token price is 1/20 of `gpt-6.1-sol` (1/100 of `gpt-6-astra`), but it spends more tokens and fails more often, so compare models by cost per solved task, not by token price: on OpenAI's coding benchmark Luna at `high` effort solves a task for about a third of what 6.1 Sol at `medium` costs, while Luna at `low` almost never solves one ([model performance](references/model-performance.md)). The orchestrator itself is the most expensive worker. Subscription credits are 25× API dollars for every model, so the same ranking holds for your plan allowance. Every token that enters the orchestrator's context is paid once at the input rate, then again (at the cached rate) on every later turn. Reading bulk material yourself is the costliest mistake. The runtime model filling the `ORCHESTRATOR` role is the supervisory control-plane agent: it partitions work, sets acceptance criteria, routes, integrates, and reports.
 
 Local workers (a model you host yourself, reached through an MCP server) are supported but **disabled by default**; see [local workers](references/local-workers.md). Everything below reads "local" as skipped unless `references/worker-routing.json` sets `local.enabled` to `true`.
 
@@ -27,7 +27,10 @@ This applicability gate takes precedence over every routing result below. A user
 | Logical role | Backed by (see `references/worker-routing.json`) | Use |
 | --- | --- | --- |
 | `LOCAL_DEFAULT` / `LOCAL_QUALITY` / `LOCAL_ALTERNATE` | your local worker model; **disabled by default** | When enabled: all ordinary worker-plane units first. Queue when busy; queueing beats paid escalation. |
-| `FRONTIER_WORKER` | `gpt-6-luna` | Default worker for every delegated unit while local is disabled; otherwise after local is exhausted or unsuitable, or for units the local interface cannot perform. |
+| `FRONTIER_WORKER` | `gpt-6-luna` at `high` effort | Default worker for every delegated unit while local is disabled; otherwise after local is exhausted or unsuitable, or for units the local interface cannot perform. |
+| `FRONTIER_RETRY` | `gpt-6-luna` at `max` effort | A fresh worker for a unit `FRONTIER_WORKER` genuinely failed. |
+| `SOL_WORKER` | `gpt-6.1-sol` at `low` effort | A fresh worker for a unit `FRONTIER_RETRY` genuinely failed. Always 6.1 Sol: GPT-6 Sol at `low` solves barely half as many coding tasks. |
+| `CLEANUP_WORKER` | `gpt-6-luna` at `high` effort | The cleanup pass (§7) on an implementation unit's diff. |
 | `ORCHESTRATOR_DIRECT` | the runtime model | Only when `route_cost.py` returns `DIRECT_CHEAPER` (tiny unit) or for authority work only the orchestrator and user can do. |
 | `ORCHESTRATOR_BREAK_GLASS` | the runtime model | Last resort; see §6. |
 
@@ -39,8 +42,8 @@ This applicability gate takes precedence over every routing result below. A user
    - Obviously bulk work (crawls, corpus reduction, multi-file implementation, debugging, test runs): delegate directly to the first enabled worker role. Do not run the cost check first.
    - Small or borderline unit: run `python scripts/route_cost.py --model <runtime model> --context <tokens> --read <n> --output <n> --turns <n>` from this skill directory. `ROUTE=ORCHESTRATOR_DIRECT` (`DIRECT_CHEAPER`) means do it yourself; any other route means delegate to that role. The script enforces hard caps (≤6k read, ≤1.5k output, ≤4 turns) and requires direct work to be at least 20% cheaper, so this route never covers substantive work.
    - Credentials, deployment, external or high-risk mutation: these are never cost decisions. Handle them with the user under normal confirmation rules.
-4. **Delegate with a tight brief**: concrete objective, acceptance criteria, output shape (256–512 tokens for research answers), evidence paths, and exact approved commands.
-5. **Integrate** the returned evidence summary: files changed, commands run, outcome, limitations, next action. Review proportionately and do not redo the unit.
+4. **Delegate with a tight brief**: concrete objective, acceptance criteria, output shape (256–512 tokens for research answers), evidence paths, and exact approved commands. For code changes, also give a diff budget (roughly how many added lines the change should need) and ask for the smallest change that meets the acceptance criteria: reuse existing helpers, no new files or abstractions the unit does not need, no commented-out code, no debug output left behind.
+5. **Integrate** the returned evidence summary: files changed, commands run, outcome, limitations, next action. Review proportionately and do not redo the unit. For a code change, run the cleanup check (§7) before accepting it.
 
 Bulk context (crawling, ingestion, filtering, extraction, reduction) always goes to a worker, never raw into the orchestrator. Deterministic metadata collection (`rg`, `find`, `ls`, `du`, hashes, manifests) is fine to run yourself when delegating it would cost more than it saves.
 
@@ -52,40 +55,50 @@ Skip this section while `local.enabled` is `false`. When enabled, a local worker
 
 Routing saves nothing if supervision is chatty. Every time a worker's message or a wait result returns, the orchestrator takes a full turn and re-reads its whole context at its own rate, so a coordination round costs about as much as an orchestrator work turn. In one measured session a Sol orchestrator spent ~90% of 1,124 turns on `wait_agent` / `send_message` / `followup_task` (more than its 31 Luna workers cost combined), and one worker looped 1,802 times.
 
-- **Always pass the worker's model explicitly.** Spawn a `FRONTIER_WORKER` with `model: "gpt-6-luna"` in the `spawn_agent` call, even when a custom agent type is named after Luna. A spawn without `model` can inherit the orchestrator's model: in one observed case three workers spawned that way ran on `gpt-6.1-sol`. If a proxy-generated agent description says the `model` argument is ignored, pass it anyway. Never spawn a Sol or Astra worker.
+- **Always pass the worker's model and effort explicitly.** Every `spawn_agent` call sets `model` and `reasoning_effort` from the role table in §2 (for example `model: "gpt-6-luna"`, `reasoning_effort: "high"` for a `FRONTIER_WORKER`), even when a custom agent type is named after Luna. A spawn without `model` can inherit the orchestrator's model: in one observed case three workers spawned that way ran on `gpt-6.1-sol`. A spawn without `reasoning_effort` inherits the orchestrator's effort, often `medium`, where Luna solves a quarter fewer coding tasks than at `high`. If a proxy-generated agent description says the `model` argument is ignored, pass it anyway. Never spawn an Astra worker, and spawn a Sol worker only as `SOL_WORKER` (§6).
+- **Start workers without your history.** Pass `fork_turns: "none"`. The default (`all`) copies the orchestrator's whole conversation into the worker, which then re-reads it on every turn; the brief must carry everything the unit needs instead.
 - **Brief once, completely.** A spawned `FRONTIER_WORKER` gets the whole unit up front: objective, acceptance criteria, evidence paths, approved commands, output shape, and a turn budget. Prefer one larger unit over a series of `followup_task`s. Within the same unit, a follow-up is fine for a changed requirement, an acceptance failure the worker must fix, or an answer to a blocker it raised; never use it to hand the worker its next unit.
 - **Wait, don't poll.** Spawn independent workers together, then block on them with the longest wait the tool allows. Never loop on short waits, `list_agents`, or `sleep` to watch progress, and never message a worker to ask for status.
 - **Report once.** Instruct workers to work silently and return a single final summary (files changed, commands run, outcome, limitations). Mid-task `send_message` is only for a blocker that needs a decision. Workers do not message each other.
 - **One unit per worker, then retire it.** A worker's context only grows: every later turn re-reads all of it, and auto-compaction loses detail. So a worker serves exactly one unit and is not reused for the next one; spawn a fresh worker with a fresh brief instead, carrying forward only the previous worker's final summary. A worker stops at its deliverable, at ~150 tool turns, or at its first auto-compaction, whichever comes first, and returns what it has with the reason it stopped. A worker past its budget is interrupted and its partial result integrated, not extended. Once its result is integrated, close the worker with `close_agent` where the collaboration surface offers it; otherwise send it nothing further, so idle workers do not accumulate. Fresh spawns are cheap; a bloated worker is not.
 - **Concurrency follows the user.** Run as many workers in parallel as the work is independent and the user has asked for (for example to finish faster or before an announced reset); otherwise default to what the partition naturally needs. Parallel workers each still obey the one-unit rule.
 - **No recursive spawning.** Workers never spawn workers; only the orchestrator partitions work.
-- **Keep the orchestrator thin.** Integrate summaries, not raw transcripts. When the orchestrator's own context grows large, follow §8.
+- **Keep the orchestrator thin.** Integrate summaries, not raw transcripts. When the orchestrator's own context grows large, follow §9.
 
 ## 6. Failure, escalation, and break-glass
 
-The ladder is `LOCAL_DEFAULT` (when enabled) → bounded local recovery → `FRONTIER_WORKER` → `ORCHESTRATOR_BREAK_GLASS`. Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate. Escalation happens only after two genuine semantic failures (the worker tried the unit properly and could not do it), or on an authority, integrity, or eligibility condition. A busy queue is not a failure.
+The ladder is `LOCAL_DEFAULT` (when enabled) → bounded local recovery → `FRONTIER_WORKER` (Luna `high`) → `FRONTIER_RETRY` (Luna `max`) → `SOL_WORKER` (6.1 Sol `low`) → `ORCHESTRATOR_BREAK_GLASS`. Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate. A unit climbs one rung per genuine semantic failure (the worker tried the unit properly and could not do it, or its result failed acceptance and a follow-up could not fix it), or on an authority, integrity, or eligibility condition. A busy queue is not a failure. Each rung is a fresh worker (§5) whose brief adds the failed attempt's summary: what was tried, and why it failed.
 
 Outside a `DIRECT_CHEAPER` result, the orchestrator may act directly only through an explicit `ORCHESTRATOR_BREAK_GLASS` decision, and only when all four conditions hold:
 
 1. the required worker delegation is unavailable or demonstrably broken;
 2. the applicable local roles were tried or ruled out with stated reasons (disabled counts as ruled out);
-3. `FRONTIER_WORKER` has also been tried or ruled out as unable to do the unit; and
+3. the paid ladder (`FRONTIER_WORKER`, `FRONTIER_RETRY`, `SOL_WORKER`) has also been tried or ruled out as unable to do the unit; and
 4. the direct action is minimal, reversible where practical, and needed to restore delegation or prevent an immediate safety or authority failure.
 
 Record it before acting: one line in your report naming the unit, which conditions hold, and why. Break-glass never covers ordinary implementation, diagnostics, testing, or verification just because delegation is inconvenient, and it cannot be added retroactively.
 
-## 7. Completion gate
+## 7. Cleanup pass
+
+Higher-effort workers solve more but write more: extra helpers, defensive branches, long comments, leftover debug output. Left alone, that bloat makes every later unit read more tokens. So code changes get a measured, conditional cleanup.
+
+- **Measure, don't read.** After integrating a unit that changed code, run `python scripts/diff_stats.py --repo <repo> --base <commit before the unit> --budget <the brief's diff budget>` from this skill directory. It prints one line with lines added and removed, new files, comment ratio, debug markers, and `status`.
+- **On `status=CLEAN`**, accept the unit. On `status=CLEANUP_RECOMMENDED`, spawn one `CLEANUP_WORKER` (fresh, `fork_turns: "none"`) whose brief names the base commit, the files in the diff, the reasons printed, and the unit's acceptance tests. Its job: remove dead code, duplicated helpers, unused parameters, speculative abstractions, commented-out code, debug output and comments that restate the code, without changing behaviour or touching files outside the diff. The tests must pass before and after. It returns the net line change.
+- **One pass, then stop.** Run `diff_stats.py` again and report both lines. Never clean the cleanup, and never escalate a cleanup: if it breaks the tests or cannot shrink the diff, revert it and keep the unit's original result. A diff legitimately over budget (the budget was wrong) is fine once a cleanup pass found nothing to remove.
+
+## 8. Completion gate
 
 Before reporting completion, confirm that:
 
 - every worker-plane unit was delegated, or has a `DIRECT_CHEAPER` result or a break-glass record for not being delegated;
-- spawned workers were briefed once, waited on rather than polled, served one unit each, and stayed within their turn budget;
-- the context check (§8) ran at its fixed points, and a `status=PROMPT_USER` result was reported to the user with the handover offer;
+- spawned workers got an explicit model and effort and no forked history, were briefed once, waited on rather than polled, served one unit each, and stayed within their turn budget;
+- every code change has a `diff_stats.py` result, and a `CLEANUP_RECOMMENDED` result got its one cleanup pass;
+- the context check (§9) ran at its fixed points, and a `status=PROMPT_USER` result was reported to the user with the handover offer;
 - bulk context was reduced by a worker, not read raw into the orchestrator.
 
-Pricing provenance is in [pricing.md](references/pricing.md); `route_cost.py` reads [pricing.json](references/pricing.json). Update both when prices change.
+Pricing provenance is in [pricing.md](references/pricing.md) and benchmark provenance in [model-performance.md](references/model-performance.md); `route_cost.py` reads [pricing.json](references/pricing.json) and [model-performance.json](references/model-performance.json). Update each pair when prices or published results change. `python scripts/route_cost.py --rank` lists every model and effort by expected cost per solved task.
 
-## 8. Context check (advisory)
+## 9. Context check (advisory)
 
 Large context is sometimes worth its cost: big-picture implementation work may need it. So this check only informs the user; it never forces a handover.
 

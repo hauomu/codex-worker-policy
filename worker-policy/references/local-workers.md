@@ -10,7 +10,7 @@ A local worker is a model you host yourself (llama.cpp, vLLM, LM Studio, Ollama,
 
    ```json
    "local": { "enabled": true, "server": "<name>", "tools": ["<exact tool names>"] },
-   "roles": { "LOCAL_DEFAULT": "<model id>", "LOCAL_QUALITY": "<model id>", "LOCAL_ALTERNATE": "<model id>", "FRONTIER_WORKER": "gpt-6-luna" }
+   "roles": { "LOCAL_DEFAULT": "<model id>", "LOCAL_QUALITY": "<model id>", "LOCAL_ALTERNATE": "<model id>", ... }
    ```
 
 4. Run `python tests/policy_lint.py`. It checks that an enabled local route names its server, tools, and a model for every local role.

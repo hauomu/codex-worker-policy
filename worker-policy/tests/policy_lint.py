@@ -18,6 +18,12 @@ POLICY_ROOT = Path(__file__).parents[1]
 LOCAL_ROLES = ("LOCAL_DEFAULT", "LOCAL_QUALITY", "LOCAL_ALTERNATE")
 sys.path.insert(0, str(POLICY_ROOT / "scripts"))
 import route_cost  # noqa: E402
+import diff_stats  # noqa: E402
+import subprocess  # noqa: E402
+import tempfile  # noqa: E402
+
+PAID_LADDER = ("FRONTIER_WORKER", "FRONTIER_RETRY", "SOL_WORKER")
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
 
 # (description, regex) pairs that must each match the policy text.
 REQUIRED_PATTERNS = (
@@ -40,17 +46,24 @@ REQUIRED_PATTERNS = (
     ("authority never a cost decision", r"never cost decisions"),
     ("bulk to workers", r"Bulk context.*always goes to a worker"),
     ("no spawn_agent for local", r"never represent a local worker through `spawn_agent`"),
-    ("explicit worker model", r"Always pass the worker's model explicitly"),
-    ("escalation ladder", r"`LOCAL_DEFAULT`.*→ .*`FRONTIER_WORKER` → `ORCHESTRATOR_BREAK_GLASS`"),
-    ("two semantic failures", r"two genuine semantic failures"),
+    ("explicit worker model and effort", r"Always pass the worker's model and effort explicitly"),
+    ("reasoning_effort on every spawn", r"`reasoning_effort`"),
+    ("no forked history", r'`fork_turns: "none"`'),
+    ("no Astra workers", r"Never spawn an Astra worker"),
+    ("escalation ladder", r"`LOCAL_DEFAULT`.*→ .*`FRONTIER_WORKER`.*→ `FRONTIER_RETRY`.*→ `SOL_WORKER`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
+    ("one rung per semantic failure", r"one rung per genuine semantic failure"),
     ("non-escalating failures", r"Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate"),
-    ("break-glass condition: frontier tried", r"`FRONTIER_WORKER` has also been tried or ruled out"),
+    ("break-glass condition: paid ladder tried", r"paid ladder .*has also been tried or ruled out"),
     ("no retroactive break-glass", r"cannot be added retroactively"),
+    ("cleanup section", r"^## \d+\. Cleanup pass"),
+    ("cleanup measured by script", r"scripts/diff_stats\.py"),
+    ("cleanup is one pass", r"One pass, then stop"),
     ("completion gate section", r"^## \d+\. Completion gate"),
     ("context check section", r"^## \d+\. Context check"),
 )
 
-REQUIRED_REFERENCES = ("local-workers.md", "pricing.md", "pricing.json", "worker-routing.json")
+REQUIRED_REFERENCES = ("local-workers.md", "pricing.md", "pricing.json", "worker-routing.json",
+                       "model-performance.md", "model-performance.json")
 # Install-specific material that must never ship in a published copy of the skill.
 FORBIDDEN = [
     (r"\b100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d+\.\d+\b", "CGNAT/Tailscale address"),
@@ -93,8 +106,18 @@ def lint() -> list[str]:
                 problems.append("worker-routing.json: an enabled local route needs a server and its tool names")
             if any(not routing["roles"].get(role) for role in LOCAL_ROLES):
                 problems.append("worker-routing.json: an enabled local route needs a model for every local role")
-        if not routing["roles"].get("FRONTIER_WORKER"):
-            problems.append("worker-routing.json: FRONTIER_WORKER must name a model")
+        roles = routing["roles"]
+        for role in PAID_LADDER + ("CLEANUP_WORKER",):
+            spec = roles.get(role)
+            if not isinstance(spec, dict) or not spec.get("model") or spec.get("effort") not in EFFORTS:
+                problems.append(f"worker-routing.json: {role} needs a model and an effort ({'/'.join(EFFORTS)})")
+        if tuple(routing.get("ladder") or ()) != PAID_LADDER:
+            problems.append(f"worker-routing.json: ladder must be {list(PAID_LADDER)}")
+        # Exact id on purpose: GPT-6 Sol at low solves far fewer tasks than 6.1 Sol at low.
+        if (roles.get("SOL_WORKER") or {}).get("model") != "gpt-6.1-sol":
+            problems.append("worker-routing.json: SOL_WORKER must be exactly gpt-6.1-sol")
+        if any("astra" in str((roles.get(r) or {}).get("model", "")) for r in PAID_LADDER + ("CLEANUP_WORKER",)):
+            problems.append("worker-routing.json: no worker role may use Astra")
     except (OSError, KeyError, TypeError, json.JSONDecodeError) as error:
         problems.append(f"worker-routing.json invalid: {error}")
     try:
@@ -114,6 +137,19 @@ def lint() -> list[str]:
             problems.append("pricing.json: frontier worker must be cheaper than the orchestrator")
     except (OSError, KeyError, TypeError, json.JSONDecodeError) as error:
         problems.append(f"pricing.json invalid: {error}")
+    try:
+        perf = json.loads((POLICY_ROOT / "references" / "model-performance.json").read_text(encoding="utf-8"))
+        bench = perf["benchmarks"][perf["primaryBenchmark"]]["models"]
+        for model_id, efforts in bench.items():
+            for effort, entry in efforts.items():
+                if effort not in EFFORTS or not 0 <= entry["score"] <= 1 or entry["usdPerTask"] <= 0:
+                    problems.append(f"model-performance.json: invalid entry {model_id}/{effort}")
+        for role in PAID_LADDER + ("CLEANUP_WORKER",):
+            spec = routing["roles"].get(role) or {}
+            if spec.get("effort") not in bench.get(spec.get("model"), {}):
+                problems.append(f"model-performance.json: no {perf['primaryBenchmark']} result for {role}")
+    except (OSError, KeyError, TypeError, AttributeError, NameError, json.JSONDecodeError) as error:
+        problems.append(f"model-performance.json invalid: {error}")
     return problems
 
 
@@ -180,8 +216,62 @@ class RouteCostCases(unittest.TestCase):
         routing = json.loads((POLICY_ROOT / "references" / "worker-routing.json").read_text(encoding="utf-8"))
         self.assertIs(routing["local"]["enabled"], False)
 
+    def shipped_ladder(self):
+        routing = json.loads((POLICY_ROOT / "references" / "worker-routing.json").read_text(encoding="utf-8"))
+        return route_cost.ladder_profiles(routing)
+
+    def test_shipped_ladder_climbs_luna_high_max_then_sol_low(self):
+        self.assertEqual(self.shipped_ladder(), [
+            ("FRONTIER_WORKER", "gpt-6-luna", "high"),
+            ("FRONTIER_RETRY", "gpt-6-luna", "max"),
+            ("SOL_WORKER", "gpt-6.1-sol", "low"),
+        ])
+
+    def test_higher_effort_rung_costs_more_and_fails_less(self):
+        high, retry, _ = self.route(read=20_000, turns=6, ladder=self.shipped_ladder())["ladder"]
+        self.assertGreater(retry["costMultiplier"], high["costMultiplier"])
+        self.assertLess(retry["failureRate"], high["failureRate"])
+
+    def test_rank_puts_luna_high_first_and_luna_low_last_among_luna(self):
+        rows = route_cost.rank(route_cost.load_performance(), 0.10)
+        self.assertEqual(rows[0][1:3], ("gpt-6-luna", "high"))
+        self.assertEqual([effort for _, model, effort, _ in rows if model == "gpt-6-luna"][-1], "low")
+
     def test_unknown_model_prices_as_default_orchestrator(self):
         self.assertEqual(self.route(model="gpt-9-unknown")["orchestratorModel"], self.pricing["defaultOrchestrator"])
+
+
+class DiffStatsCases(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.repo = self.tmp.name
+        for cmd in (["init", "-q"], ["config", "user.email", "t@example.com"], ["config", "user.name", "t"]):
+            subprocess.run(["git", "-C", self.repo, *cmd], check=True)
+        self.write("a.py", "x = 1\n")
+        subprocess.run(["git", "-C", self.repo, "add", "."], check=True)
+        subprocess.run(["git", "-C", self.repo, "commit", "-qm", "base"], check=True)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def write(self, name, text):
+        (Path(self.repo) / name).write_text(text, encoding="utf-8")
+
+    def test_small_diff_is_clean(self):
+        self.write("a.py", "x = 1\ny = 2\n")
+        r = diff_stats.measure(self.repo, "HEAD", 200, 0.35)
+        self.assertEqual((r["added"], r["status"]), (1, "CLEAN"))
+
+    def test_over_budget_untracked_and_debug_lines_need_cleanup(self):
+        self.write("b.py", "".join(f"v{i} = {i}\n" for i in range(30)) + "# TODO remove\nbreakpoint()\n")
+        r = diff_stats.measure(self.repo, "HEAD", 10, 0.35)
+        self.assertEqual(r["status"], "CLEANUP_RECOMMENDED")
+        self.assertEqual(set(r["reasons"]), {"over_budget", "debug_markers"})
+        self.assertEqual((r["newFiles"], r["debugMarkers"]), (1, 2))
+
+    def test_todo_in_code_is_not_a_marker(self):
+        self.write("a.py", "x = 1\nPATTERN = 'TODO'\n")
+        self.assertEqual(diff_stats.measure(self.repo, "HEAD", 200, 0.35)["debugMarkers"], 0)
 
 
 class PolicyLint(unittest.TestCase):
