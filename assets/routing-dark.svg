@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 2350" width="1200" height="2350" role="img" aria-labelledby="title desc" font-family="Segoe UI, Helvetica, Arial, sans-serif">
   <title id="title">How worker-policy routes work</title>
-  <desc id="desc">Flowchart: an identity gate, partitioning into units, a bulk check, route_cost.py's hard-cap and margin checks, delegation, and a paid ladder picked by unit kind. The default ladder runs from local workers (disabled by default) to gpt-6-luna at high effort, gpt-6-luna at max, gpt-6.1-sol at low, then break-glass; interpretation research joins it at gpt-6-luna max. Terminal units (debugging, testing, build, environment) and analysis research climb gpt-6.1-sol at medium, then high, then break-glass. After integration, code changes are measured with diff_stats.py and get at most one cleanup worker pass before the completion gate. Side panels explain the cost model and supervision rules.</desc>
+  <desc id="desc">Flowchart: an identity gate, partitioning into units, a bulk check, route_cost.py's hard-cap and margin checks, delegation, and a paid ladder picked by unit kind. The default ladder runs from local workers (disabled by default) to gpt-6-luna at high effort, gpt-6-luna at max, then gpt-6.1-sol at low; interpretation research joins it at gpt-6-luna max. Terminal units (debugging, testing, build, environment) and analysis research get gpt-6.1-sol at medium, then a fresh gpt-6.1-sol at medium whose brief carries the failure summary. When any ladder runs out, the orchestrator reviews the failure summaries and re-plans once or reports to the user. Break-glass is a separate exception path for broken delegation or safety and authority failures, never a ladder rung. After integration, code changes are measured with diff_stats.py and get at most one cleanup worker pass before the completion gate. Side panels explain the cost model and supervision rules.</desc>
   <defs>
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#8f9bd0"/>
@@ -130,11 +130,11 @@
   <path d="M240 1036 L240 1068" class="line" marker-end="url(#arr)"/>
   <text x="252" y="1057" class="lab">genuine failure</text>
   <rect x="100" y="1070" width="280" height="58" rx="14" class="sol"/>
-  <text x="240" y="1094" class="h" text-anchor="middle">SOL_HIGH · 6.1 Sol high</text>
-  <text x="240" y="1115" class="m" text-anchor="middle">gpt-6.1-sol · effort high</text>
+  <text x="240" y="1094" class="h" text-anchor="middle">SOL_MEDIUM · fresh retry</text>
+  <text x="240" y="1115" class="s" text-anchor="middle">brief adds what was tried and why it failed</text>
 
   <path d="M240 1128 L240 1381 L418 1381" class="line" marker-end="url(#arr)"/>
-  <text x="252" y="1262" class="lab">Sol ladder exhausted</text>
+  <text x="252" y="1262" class="lab">retry failed too</text>
 
   <!-- default ladder: one rung per genuine semantic failure -->
   <rect x="420" y="978" width="320" height="58" rx="14" class="off"/>
@@ -160,11 +160,18 @@
   <text x="580" y="1299" class="m" text-anchor="middle">gpt-6.1-sol · effort low</text>
 
   <path d="M580 1312 L580 1344" class="line" marker-end="url(#arr)"/>
-  <text x="592" y="1333" class="lab">paid ladder exhausted</text>
-  <rect x="420" y="1346" width="320" height="70" rx="14" class="glass"/>
-  <text x="580" y="1371" class="h" text-anchor="middle">ORCHESTRATOR_BREAK_GLASS</text>
-  <text x="580" y="1391" class="s" text-anchor="middle">last resort · all 4 conditions must hold</text>
-  <text x="580" y="1408" class="s" text-anchor="middle">recorded before acting, never retroactively</text>
+  <text x="592" y="1333" class="lab">last rung failed too</text>
+  <rect x="420" y="1346" width="320" height="94" rx="14" class="node"/>
+  <text x="580" y="1371" class="h" text-anchor="middle">Ladder ran out</text>
+  <text x="580" y="1392" class="s" text-anchor="middle">orchestrator reviews the failure summaries</text>
+  <text x="580" y="1411" class="s" text-anchor="middle">re-plan once → restart at the first rung,</text>
+  <text x="580" y="1429" class="s" text-anchor="middle">or report to the user what blocks the unit</text>
+
+  <!-- break-glass: an exception path, never a ladder rung -->
+  <rect x="100" y="1400" width="280" height="76" rx="14" class="glass"/>
+  <text x="240" y="1424" class="h" text-anchor="middle">ORCHESTRATOR_BREAK_GLASS</text>
+  <text x="240" y="1444" class="s" text-anchor="middle">exception path · never a ladder rung</text>
+  <text x="240" y="1462" class="s" text-anchor="middle">delegation broken · safety or authority</text>
 
   <!-- success rails: any rung that passes acceptance goes to integration -->
   <path d="M740 1099 L776 1099" class="line"/>
@@ -178,7 +185,6 @@
   <!-- 6. integrate -->
   <path d="M80 902 L80 1521 L318 1521" class="line" marker-end="url(#arr)"/>
   <text x="68" y="1260" class="lab" text-anchor="middle" transform="rotate(-90 68 1260)">done / passes acceptance</text>
-  <path d="M580 1416 L580 1488" class="line" marker-end="url(#arr)"/>
   <rect x="320" y="1490" width="400" height="62" rx="14" class="node"/>
   <text x="520" y="1516" class="h" text-anchor="middle">6 · Integrate the summary</text>
   <text x="520" y="1538" class="s" text-anchor="middle">the worker's report, never its transcript</text>
@@ -319,7 +325,7 @@
     <rect x="420" width="26" height="18" rx="5" class="off"/>
     <text x="456" y="14" class="s">disabled by default</text>
     <rect x="620" width="26" height="18" rx="5" class="glass"/>
-    <text x="656" y="14" class="s">last resort</text>
+    <text x="656" y="14" class="s">exception path (break-glass)</text>
   </g>
   <text x="1150" y="2302" class="s" text-anchor="end">github.com/hauomu/codex-worker-policy</text>
 </svg>

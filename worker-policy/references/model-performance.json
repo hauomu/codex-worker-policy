@@ -269,6 +269,18 @@
           "medium": {
             "score": 0.48,
             "usdPerTask": 0.21
+          },
+          "high": {
+            "score": 0.52,
+            "usdPerTask": 0.32
+          },
+          "xhigh": {
+            "score": 0.54,
+            "usdPerTask": 0.39
+          },
+          "max": {
+            "score": 0.56,
+            "usdPerTask": 0.72
           }
         }
       }
@@ -298,6 +310,18 @@
           "medium": {
             "score": 0.63,
             "usdPerTask": 0.21
+          },
+          "high": {
+            "score": 0.64,
+            "usdPerTask": 0.32
+          },
+          "xhigh": {
+            "score": 0.67,
+            "usdPerTask": 0.39
+          },
+          "max": {
+            "score": 0.65,
+            "usdPerTask": 0.72
           }
         }
       }
@@ -327,6 +351,18 @@
           "medium": {
             "score": 0.53,
             "usdPerTask": 0.21
+          },
+          "high": {
+            "score": 0.56,
+            "usdPerTask": 0.32
+          },
+          "xhigh": {
+            "score": 0.56,
+            "usdPerTask": 0.39
+          },
+          "max": {
+            "score": 0.54,
+            "usdPerTask": 0.72
           }
         }
       }
@@ -356,6 +392,18 @@
           "medium": {
             "score": 0.5,
             "usdPerTask": 0.21
+          },
+          "high": {
+            "score": 0.51,
+            "usdPerTask": 0.32
+          },
+          "xhigh": {
+            "score": 0.53,
+            "usdPerTask": 0.39
+          },
+          "max": {
+            "score": 0.53,
+            "usdPerTask": 0.72
           }
         }
       }
@@ -385,6 +433,18 @@
           "medium": {
             "score": 0.3,
             "usdPerTask": 0.21
+          },
+          "high": {
+            "score": 0.32,
+            "usdPerTask": 0.32
+          },
+          "xhigh": {
+            "score": 0.32,
+            "usdPerTask": 0.39
+          },
+          "max": {
+            "score": 0.31,
+            "usdPerTask": 0.72
           }
         }
       }
@@ -414,6 +474,18 @@
           "medium": {
             "score": 0.28,
             "usdPerTask": 0.21
+          },
+          "high": {
+            "score": 0.3,
+            "usdPerTask": 0.32
+          },
+          "xhigh": {
+            "score": 0.32,
+            "usdPerTask": 0.39
+          },
+          "max": {
+            "score": 0.32,
+            "usdPerTask": 0.72
           }
         }
       }
@@ -443,6 +515,18 @@
           "medium": {
             "score": 0.83,
             "usdPerTask": 0.21
+          },
+          "high": {
+            "score": 0.82,
+            "usdPerTask": 0.32
+          },
+          "xhigh": {
+            "score": 0.8,
+            "usdPerTask": 0.39
+          },
+          "max": {
+            "score": 0.83,
+            "usdPerTask": 0.72
           }
         }
       }

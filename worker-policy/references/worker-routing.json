@@ -14,7 +14,6 @@
     "FRONTIER_RETRY": {"model": "gpt-6-luna", "effort": "max"},
     "SOL_WORKER": {"model": "gpt-6.1-sol", "effort": "low"},
     "SOL_MEDIUM": {"model": "gpt-6.1-sol", "effort": "medium"},
-    "SOL_HIGH": {"model": "gpt-6.1-sol", "effort": "high"},
     "CLEANUP_WORKER": {"model": "gpt-6-luna", "effort": "high"}
   },
   "ladders": {
@@ -25,7 +24,7 @@
     ],
     "terminal": [
       "SOL_MEDIUM",
-      "SOL_HIGH"
+      "SOL_MEDIUM"
     ],
     "interpret": [
       "FRONTIER_RETRY",
@@ -33,7 +32,7 @@
     ],
     "judgement": [
       "SOL_MEDIUM",
-      "SOL_HIGH"
+      "SOL_MEDIUM"
     ]
   },
   "kindLadders": {
