@@ -23,6 +23,10 @@ import subprocess  # noqa: E402
 import tempfile  # noqa: E402
 
 PAID_LADDER = ("FRONTIER_WORKER", "FRONTIER_RETRY", "SOL_WORKER")
+TERMINAL_LADDER = ("SOL_WORKER", "SOL_RETRY")
+TERMINAL_KINDS = ("debugging", "testing", "build", "environment")
+PAID_ROLES = PAID_LADDER + ("SOL_RETRY", "CLEANUP_WORKER")
+SOL_ROLES = ("SOL_WORKER", "SOL_RETRY")
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 
 # (description, regex) pairs that must each match the policy text.
@@ -51,6 +55,8 @@ REQUIRED_PATTERNS = (
     ("no forked history", r'`fork_turns: "none"`'),
     ("no Astra workers", r"Never spawn an Astra worker"),
     ("escalation ladder", r"`LOCAL_DEFAULT`.*→ .*`FRONTIER_WORKER`.*→ `FRONTIER_RETRY`.*→ `SOL_WORKER`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
+    ("terminal ladder", r"terminal ladder.*`SOL_WORKER`.*→ `SOL_RETRY`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
+    ("ladder picked by unit kind", r"Pick the ladder by unit kind"),
     ("one rung per semantic failure", r"one rung per genuine semantic failure"),
     ("non-escalating failures", r"Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate"),
     ("break-glass condition: paid ladder tried", r"paid ladder .*has also been tried or ruled out"),
@@ -107,16 +113,25 @@ def lint() -> list[str]:
             if any(not routing["roles"].get(role) for role in LOCAL_ROLES):
                 problems.append("worker-routing.json: an enabled local route needs a model for every local role")
         roles = routing["roles"]
-        for role in PAID_LADDER + ("CLEANUP_WORKER",):
+        for role in PAID_ROLES:
             spec = roles.get(role)
             if not isinstance(spec, dict) or not spec.get("model") or spec.get("effort") not in EFFORTS:
                 problems.append(f"worker-routing.json: {role} needs a model and an effort ({'/'.join(EFFORTS)})")
-        if tuple(routing.get("ladder") or ()) != PAID_LADDER:
-            problems.append(f"worker-routing.json: ladder must be {list(PAID_LADDER)}")
+        ladders = routing.get("ladders") or {}
+        if tuple(ladders.get("default") or ()) != PAID_LADDER:
+            problems.append(f"worker-routing.json: ladders.default must be {list(PAID_LADDER)}")
+        if tuple(ladders.get("terminal") or ()) != TERMINAL_LADDER:
+            problems.append(f"worker-routing.json: ladders.terminal must be {list(TERMINAL_LADDER)}")
+        kinds = routing.get("kindLadders") or {}
+        if any(kinds.get(kind) != "terminal" for kind in TERMINAL_KINDS):
+            problems.append(f"worker-routing.json: kindLadders must map {', '.join(TERMINAL_KINDS)} to terminal")
+        if any(name not in ladders for name in kinds.values()):
+            problems.append("worker-routing.json: kindLadders names a ladder that does not exist")
         # Exact id on purpose: GPT-6 Sol at low solves far fewer tasks than 6.1 Sol at low.
-        if (roles.get("SOL_WORKER") or {}).get("model") != "gpt-6.1-sol":
-            problems.append("worker-routing.json: SOL_WORKER must be exactly gpt-6.1-sol")
-        if any("astra" in str((roles.get(r) or {}).get("model", "")) for r in PAID_LADDER + ("CLEANUP_WORKER",)):
+        for role in SOL_ROLES:
+            if (roles.get(role) or {}).get("model") != "gpt-6.1-sol":
+                problems.append(f"worker-routing.json: {role} must be exactly gpt-6.1-sol")
+        if any("astra" in str((roles.get(r) or {}).get("model", "")) for r in PAID_ROLES):
             problems.append("worker-routing.json: no worker role may use Astra")
     except (OSError, KeyError, TypeError, json.JSONDecodeError) as error:
         problems.append(f"worker-routing.json invalid: {error}")
@@ -144,7 +159,7 @@ def lint() -> list[str]:
             for effort, entry in efforts.items():
                 if effort not in EFFORTS or not 0 <= entry["score"] <= 1 or entry["usdPerTask"] <= 0:
                     problems.append(f"model-performance.json: invalid entry {model_id}/{effort}")
-        for role in PAID_LADDER + ("CLEANUP_WORKER",):
+        for role in PAID_ROLES:
             spec = routing["roles"].get(role) or {}
             if spec.get("effort") not in bench.get(spec.get("model"), {}):
                 problems.append(f"model-performance.json: no {perf['primaryBenchmark']} result for {role}")
@@ -216,9 +231,24 @@ class RouteCostCases(unittest.TestCase):
         routing = json.loads((POLICY_ROOT / "references" / "worker-routing.json").read_text(encoding="utf-8"))
         self.assertIs(routing["local"]["enabled"], False)
 
-    def shipped_ladder(self):
+    def shipped_ladder(self, kind=None):
         routing = json.loads((POLICY_ROOT / "references" / "worker-routing.json").read_text(encoding="utf-8"))
-        return route_cost.ladder_profiles(routing)
+        return route_cost.ladder_profiles(routing, kind)
+
+    def test_terminal_kinds_start_on_sol_low(self):
+        for kind in TERMINAL_KINDS:
+            with self.subTest(kind=kind):
+                self.assertEqual(self.shipped_ladder(kind), [
+                    ("SOL_WORKER", "gpt-6.1-sol", "low"),
+                    ("SOL_RETRY", "gpt-6.1-sol", "medium"),
+                ])
+        for kind in ("implementation", "research", "other"):
+            with self.subTest(kind=kind):
+                self.assertEqual(self.shipped_ladder(kind)[0], ("FRONTIER_WORKER", "gpt-6-luna", "high"))
+
+    def test_sol_low_is_cheaper_per_solve_on_terminal_work(self):
+        rows = route_cost.rank(route_cost.load_performance("aa-terminal-bench-4.0"), 0.10)
+        self.assertEqual(rows[0][1:3], ("gpt-6.1-sol", "low"))
 
     def test_shipped_ladder_climbs_luna_high_max_then_sol_low(self):
         self.assertEqual(self.shipped_ladder(), [

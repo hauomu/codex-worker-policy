@@ -6,8 +6,10 @@ Deterministic, linear-in-price cost model (no model call, no network):
   * material the orchestrator reads itself is paid once at the input price, then again
     (cached) on every later turn while it stays resident;
   * delegation costs the orchestrator a brief, a couple of turns and a resident summary,
-    plus the worker's own tokens and the expected cost of climbing the worker ladder
-    (Luna high -> Luna max -> 6.1 Sol low -> orchestrator) when a rung fails.
+    plus the worker's own tokens and the expected cost of climbing the unit's worker
+    ladder when a rung fails, then falling back to the orchestrator. --kind picks the
+    ladder (worker-routing.json kindLadders): terminal-heavy kinds (debugging, testing,
+    build, environment) start on 6.1 Sol low, everything else on Luna high.
 
 Worker cost and failure rate depend on reasoning effort. Both come from
 references/model-performance.json: a rung's cost scales with its published cost per task,
@@ -27,6 +29,7 @@ Usage:
   python route_cost.py --model gpt-6.1-sol --context 120000 --read 3000 --output 500 --turns 2
   python route_cost.py --kind research --json
   python route_cost.py --rank          # expected cost per solved task for every model/effort
+  python route_cost.py --rank --benchmark aa-terminal-bench-4.0
 """
 import argparse, json, os, re, sys
 
@@ -55,6 +58,8 @@ DEFAULT_COST_MODEL = {
         "implementation": {"readTokens": 8_000, "outputTokens": 1_500, "turns": 5},
         "debugging": {"readTokens": 15_000, "outputTokens": 800, "turns": 6},
         "testing": {"readTokens": 6_000, "outputTokens": 300, "turns": 3},
+        "build": {"readTokens": 8_000, "outputTokens": 400, "turns": 5},
+        "environment": {"readTokens": 6_000, "outputTokens": 300, "turns": 5},
         "review": {"readTokens": 10_000, "outputTokens": 600, "turns": 3},
         "documentation": {"readTokens": 6_000, "outputTokens": 1_500, "turns": 3},
         "other": {"readTokens": 8_000, "outputTokens": 800, "turns": 4},
@@ -93,17 +98,22 @@ def load_pricing():
     }
 
 
-def load_performance():
+def load_performance(benchmark=None):
     raw = load_json("model-performance.json")
-    bench = raw["benchmarks"][raw["primaryBenchmark"]]["models"]
-    return {"version": raw.get("version", "performance-unversioned"), "benchmark": raw["primaryBenchmark"],
+    name = benchmark or raw["primaryBenchmark"]
+    if name not in raw["benchmarks"]:
+        raise SystemExit(f"unknown benchmark {name!r}; choose from: {', '.join(raw['benchmarks'])}")
+    bench = raw["benchmarks"][name]["models"]
+    return {"version": raw.get("version", "performance-unversioned"), "benchmark": name,
             "models": {m.lower(): v for m, v in bench.items()}}
 
 
-def ladder_profiles(routing):
-    """The paid worker ladder as [(role, model, effort)], in escalation order."""
+def ladder_profiles(routing, kind=None):
+    """The unit kind's paid worker ladder as [(role, model, effort)], in escalation order."""
+    ladders = routing.get("ladders") or {"default": routing.get("ladder") or ["FRONTIER_WORKER"]}
+    name = (routing.get("kindLadders") or {}).get(kind, "default")
     out = []
-    for role in routing.get("ladder") or ["FRONTIER_WORKER"]:
+    for role in ladders.get(name) or ladders["default"]:
         spec = (routing.get("roles") or {}).get(role)
         if isinstance(spec, dict) and spec.get("model"):
             out.append((role, spec["model"].lower(), spec.get("effort", "medium")))
@@ -160,13 +170,14 @@ def estimate(pricing, *, model, context, remaining_turns, read, output, turns, k
     overhead = (usd(cm["delegationTurns"] * context, p["cachedInput"])
                 + usd(cm["briefTokens"], p["output"]) + resident(cm["summaryTokens"]))
 
-    # The token model prices the first rung; later rungs scale by their published cost per
-    # task relative to it. Walk the ladder from the top: every failed rung costs another
-    # spawn plus the next rung, and the last rung falls back to the orchestrator (break-glass).
-    _, f, _ = resolve_price(pricing, ladder[0][1])
+    # The token model prices the unit for Luna at high effort; every rung scales by its
+    # published cost per task relative to that, which also captures how many tokens each
+    # model spends. Walk the ladder from the top: every failed rung costs another spawn
+    # plus the next rung, and the last rung falls back to the orchestrator (break-glass).
+    _, f, _ = resolve_price(pricing, pricing["frontierWorker"])
     base = read + cm["frontierBaseTokens"]
     first_work = usd(base, f["input"]) + usd(base * turns, f["cachedInput"]) + usd(output * 1.5, f["output"])
-    reference = (ladder[0][1], ladder[0][2])
+    reference = (pricing["frontierWorker"], "high")
     rungs, fallback = [], direct
     for role, wmodel, effort in reversed(ladder):
         mult, fail = rung_stats(perf, cm, wmodel, effort, reference)
@@ -224,10 +235,12 @@ def main(argv=None):
     ap.add_argument("--kind", default="other", help="defaults for missing estimates: " + ", ".join(DEFAULT_COST_MODEL["kindDefaults"]))
     ap.add_argument("--json", action="store_true", help="print the full estimate as JSON")
     ap.add_argument("--rank", action="store_true", help="rank every model/effort by expected cost per solved task")
+    ap.add_argument("--benchmark", help="benchmark for --rank (default: model-performance.json primaryBenchmark)")
     a = ap.parse_args(argv)
 
-    pricing, perf = load_pricing(), load_performance()
+    pricing = load_pricing()
     if a.rank:
+        perf = load_performance(a.benchmark)
         penalty = pricing["costModel"]["failurePenaltyUsd"]
         print(f"benchmark={perf['benchmark']} failure_penalty=${penalty:.2f} ({perf['version']})")
         for per_solve, model, effort, e in rank(perf, penalty):
@@ -237,7 +250,7 @@ def main(argv=None):
     eligible_local = bool((routing.get("local") or {}).get("enabled"))
     r = estimate(pricing, model=a.model, context=a.context, remaining_turns=a.remaining_turns,
                  read=a.read, output=a.output, turns=a.turns, kind=a.kind, eligible_local=eligible_local,
-                 ladder=ladder_profiles(routing), perf=perf)
+                 ladder=ladder_profiles(routing, a.kind), perf=load_performance())
     if a.json:
         print(json.dumps(r, indent=2))
         return 0

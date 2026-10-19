@@ -39,9 +39,30 @@ Luna's token price is 1/20 of 6.1 Sol's, but at higher effort it thinks for long
 | OSWorld 2.0 offline (computer use) | 31.5% / $0.062 | 41.4% / $0.12 | 46.7% / $0.16 | 52.7% / $0.27 | 43.9% / $0.97 |
 | Factual error rate (lower is better) | 17.5% | 12.5% | 10.2% | 7.6% | 11.4% |
 
+## Independent: Artificial Analysis, Luna `high` vs 6.1 Sol `low`
+
+From the [Artificial Analysis comparison](https://artificialanalysis.ai/models/comparisons?compare=gpt-6-luna-high%2Cgpt-6-1-sol-low) (Intelligence Index v4.3.2), checked 2026-10-20. Artificial Analysis reports one cost per task averaged over the whole index ($0.03 for Luna `high`, $0.13 for 6.1 Sol `low`), so the per-solve figures below use that average for every benchmark. The JSON stores these as the `aa-*` benchmarks; `route_cost.py --rank --benchmark aa-terminal-bench-4.0` ranks by one of them.
+
+| Benchmark | Luna `high` | 6.1 Sol `low` | $/solve Luna | $/solve Sol |
+| --- | ---: | ---: | ---: | ---: |
+| **Terminal-Bench 4.0 (agentic coding & terminal use)** | **5%** | **31%** | **2.50** | **0.64** |
+| AutomationBench-AA (agentic SaaS workflows) | 48% | 53% | 0.17 | 0.33 |
+| SciCode (coding) | 50% | 53% | 0.16 | 0.33 |
+| Humanity's Last Exam (reasoning & knowledge) | 33% | 47% | 0.29 | 0.39 |
+| GDP.pdf (document reasoning) | 18% | 27% | 0.62 | 0.75 |
+| CritPt (physics reasoning) | 15% | 25% | 0.77 | 0.79 |
+| AA-LCR v1.1 (long-context reasoning) | 79% | 84% | 0.07 | 0.17 |
+| AA-Omniscience index (knowledge minus hallucination, −100…100) | −6 | 38 | | |
+| Intelligence Index | 33 | 42 | | |
+| Output tokens per task | 20k | 4k | | |
+| Time per task | 167 s | 92 s | | |
+
+Luna `high` wins on AA-Briefcase (1186 vs 1117) and GDPval-AA (1340 vs 1315), both agentic knowledge-work Elo ratings. 6.1 Sol `low` scores higher on everything else, but Luna stays cheaper per solve except on terminal work, where it almost never finishes. Its negative Omniscience score means that from memory it answers wrongly more often than rightly, so research briefs should make it work from sources, not recall.
+
 ## What the policy takes from this
 
-- **Luna `high` is the default worker.** It is the cheapest per solved coding task. `medium` (the Codex default a worker inherits when no effort is passed) solves a quarter fewer tasks, and `low` is unusable for agent work.
+- **Terminal-heavy units start on 6.1 Sol `low`.** Debugging, running and fixing tests, builds and environment setup are what Terminal-Bench measures. There Sol is about four times cheaper per solve, and it finishes faster. Their retry is 6.1 Sol `medium`; Luna is skipped.
+- **Luna `high` is the default worker for everything else.** It is the cheapest per solved coding task. `medium` (the Codex default a worker inherits when no effort is passed) solves a quarter fewer tasks, and `low` is unusable for agent work.
 - **`xhigh` is not worth it as a default.** It adds about 2 points on DeepSWE for 31% more cost, and scores *below* `high` on FrontierCode and AutomationBench.
 - **`max` is the retry.** It is the strongest Luna setting on every benchmark, so it is the best second attempt at a unit `high` failed, even though it is too expensive per solve to be the default.
 - **6.1 Sol `low` is the last worker rung,** never GPT-6 Sol: at `low`, 6.1 Sol solves 64.4% of DeepSWE tasks and GPT-6 Sol 37.2%, at nearly the same price. On coding, 6.1 Sol `low` is actually cheaper per solve than Luna `max`. It is a different model, so it is also less likely to repeat Luna's mistake.

@@ -1,39 +1,99 @@
 {
   "version": "performance-2026-10-20",
   "unit": "score = fraction of tasks solved; usdPerTask = vendor-estimated API USD per task (credits are 25x, same ranking)",
-  "source": "OpenAI launch charts for GPT-6 Sol/Luna and GPT-6.1 Sol (vendor-reported), checked 2026-10-20; see model-performance.md",
+  "source": "OpenAI launch charts for GPT-6 Sol/Luna and GPT-6.1 Sol (vendor-reported), checked 2026-10-20; see model-performance.md; Artificial Analysis independent runs (aa-* benchmarks), checked 2026-10-20",
   "primaryBenchmark": "deepswe-1.1",
   "benchmarks": {
     "deepswe-1.1": {
       "what": "repository bug resolution (agentic coding)",
       "models": {
         "gpt-6-luna": {
-          "low": {"score": 0.024, "usdPerTask": 0.006},
-          "medium": {"score": 0.445, "usdPerTask": 0.052},
-          "high": {"score": 0.593, "usdPerTask": 0.084},
-          "xhigh": {"score": 0.613, "usdPerTask": 0.11},
-          "max": {"score": 0.666, "usdPerTask": 0.22}
+          "low": {
+            "score": 0.024,
+            "usdPerTask": 0.006
+          },
+          "medium": {
+            "score": 0.445,
+            "usdPerTask": 0.052
+          },
+          "high": {
+            "score": 0.593,
+            "usdPerTask": 0.084
+          },
+          "xhigh": {
+            "score": 0.613,
+            "usdPerTask": 0.11
+          },
+          "max": {
+            "score": 0.666,
+            "usdPerTask": 0.22
+          }
         },
         "gpt-6.1-sol": {
-          "low": {"score": 0.644, "usdPerTask": 0.17},
-          "medium": {"score": 0.73, "usdPerTask": 0.42},
-          "high": {"score": 0.752, "usdPerTask": 0.65},
-          "xhigh": {"score": 0.719, "usdPerTask": 0.79},
-          "max": {"score": 0.719, "usdPerTask": 1.57}
+          "low": {
+            "score": 0.644,
+            "usdPerTask": 0.17
+          },
+          "medium": {
+            "score": 0.73,
+            "usdPerTask": 0.42
+          },
+          "high": {
+            "score": 0.752,
+            "usdPerTask": 0.65
+          },
+          "xhigh": {
+            "score": 0.719,
+            "usdPerTask": 0.79
+          },
+          "max": {
+            "score": 0.719,
+            "usdPerTask": 1.57
+          }
         },
         "gpt-6-sol": {
-          "low": {"score": 0.372, "usdPerTask": 0.16},
-          "medium": {"score": 0.566, "usdPerTask": 0.38},
-          "high": {"score": 0.653, "usdPerTask": 0.64},
-          "xhigh": {"score": 0.666, "usdPerTask": 1.0},
-          "max": {"score": 0.688, "usdPerTask": 2.74}
+          "low": {
+            "score": 0.372,
+            "usdPerTask": 0.16
+          },
+          "medium": {
+            "score": 0.566,
+            "usdPerTask": 0.38
+          },
+          "high": {
+            "score": 0.653,
+            "usdPerTask": 0.64
+          },
+          "xhigh": {
+            "score": 0.666,
+            "usdPerTask": 1.0
+          },
+          "max": {
+            "score": 0.688,
+            "usdPerTask": 2.74
+          }
         },
         "gpt-6-astra": {
-          "low": {"score": 0.67, "usdPerTask": 1.6},
-          "medium": {"score": 0.728, "usdPerTask": 3.08},
-          "high": {"score": 0.732, "usdPerTask": 3.92},
-          "xhigh": {"score": 0.741, "usdPerTask": 4.43},
-          "max": {"score": 0.732, "usdPerTask": 7.5}
+          "low": {
+            "score": 0.67,
+            "usdPerTask": 1.6
+          },
+          "medium": {
+            "score": 0.728,
+            "usdPerTask": 3.08
+          },
+          "high": {
+            "score": 0.732,
+            "usdPerTask": 3.92
+          },
+          "xhigh": {
+            "score": 0.741,
+            "usdPerTask": 4.43
+          },
+          "max": {
+            "score": 0.732,
+            "usdPerTask": 7.5
+          }
         }
       }
     },
@@ -41,18 +101,48 @@
       "what": "coding (main set)",
       "models": {
         "gpt-6-luna": {
-          "low": {"score": 0.257, "usdPerTask": 0.021},
-          "medium": {"score": 0.355, "usdPerTask": 0.053},
-          "high": {"score": 0.373, "usdPerTask": 0.067},
-          "xhigh": {"score": 0.371, "usdPerTask": 0.073},
-          "max": {"score": 0.424, "usdPerTask": 0.11}
+          "low": {
+            "score": 0.257,
+            "usdPerTask": 0.021
+          },
+          "medium": {
+            "score": 0.355,
+            "usdPerTask": 0.053
+          },
+          "high": {
+            "score": 0.373,
+            "usdPerTask": 0.067
+          },
+          "xhigh": {
+            "score": 0.371,
+            "usdPerTask": 0.073
+          },
+          "max": {
+            "score": 0.424,
+            "usdPerTask": 0.11
+          }
         },
         "gpt-6-sol": {
-          "low": {"score": 0.373, "usdPerTask": 0.45},
-          "medium": {"score": 0.459, "usdPerTask": 0.8},
-          "high": {"score": 0.477, "usdPerTask": 1.08},
-          "xhigh": {"score": 0.484, "usdPerTask": 1.37},
-          "max": {"score": 0.493, "usdPerTask": 2.14}
+          "low": {
+            "score": 0.373,
+            "usdPerTask": 0.45
+          },
+          "medium": {
+            "score": 0.459,
+            "usdPerTask": 0.8
+          },
+          "high": {
+            "score": 0.477,
+            "usdPerTask": 1.08
+          },
+          "xhigh": {
+            "score": 0.484,
+            "usdPerTask": 1.37
+          },
+          "max": {
+            "score": 0.493,
+            "usdPerTask": 2.14
+          }
         }
       }
     },
@@ -60,18 +150,48 @@
       "what": "multi-step tool automation",
       "models": {
         "gpt-6-luna": {
-          "low": {"score": 0.012, "usdPerTask": 0.006},
-          "medium": {"score": 0.094, "usdPerTask": 0.016},
-          "high": {"score": 0.145, "usdPerTask": 0.021},
-          "xhigh": {"score": 0.126, "usdPerTask": 0.025},
-          "max": {"score": 0.207, "usdPerTask": 0.037}
+          "low": {
+            "score": 0.012,
+            "usdPerTask": 0.006
+          },
+          "medium": {
+            "score": 0.094,
+            "usdPerTask": 0.016
+          },
+          "high": {
+            "score": 0.145,
+            "usdPerTask": 0.021
+          },
+          "xhigh": {
+            "score": 0.126,
+            "usdPerTask": 0.025
+          },
+          "max": {
+            "score": 0.207,
+            "usdPerTask": 0.037
+          }
         },
         "gpt-6-sol": {
-          "low": {"score": 0.212, "usdPerTask": 0.19},
-          "medium": {"score": 0.269, "usdPerTask": 0.21},
-          "high": {"score": 0.312, "usdPerTask": 0.24},
-          "xhigh": {"score": 0.332, "usdPerTask": 0.27},
-          "max": {"score": 0.32, "usdPerTask": 0.34}
+          "low": {
+            "score": 0.212,
+            "usdPerTask": 0.19
+          },
+          "medium": {
+            "score": 0.269,
+            "usdPerTask": 0.21
+          },
+          "high": {
+            "score": 0.312,
+            "usdPerTask": 0.24
+          },
+          "xhigh": {
+            "score": 0.332,
+            "usdPerTask": 0.27
+          },
+          "max": {
+            "score": 0.32,
+            "usdPerTask": 0.34
+          }
         }
       }
     },
@@ -79,20 +199,170 @@
       "what": "computer use",
       "models": {
         "gpt-6-luna": {
-          "low": {"score": 0.083, "usdPerTask": 0.03},
-          "medium": {"score": 0.315, "usdPerTask": 0.062},
-          "high": {"score": 0.414, "usdPerTask": 0.12},
-          "xhigh": {"score": 0.467, "usdPerTask": 0.16},
-          "max": {"score": 0.527, "usdPerTask": 0.27}
+          "low": {
+            "score": 0.083,
+            "usdPerTask": 0.03
+          },
+          "medium": {
+            "score": 0.315,
+            "usdPerTask": 0.062
+          },
+          "high": {
+            "score": 0.414,
+            "usdPerTask": 0.12
+          },
+          "xhigh": {
+            "score": 0.467,
+            "usdPerTask": 0.16
+          },
+          "max": {
+            "score": 0.527,
+            "usdPerTask": 0.27
+          }
         },
         "gpt-6-sol": {
-          "low": {"score": 0.439, "usdPerTask": 0.97},
-          "medium": {"score": 0.54, "usdPerTask": 1.32},
-          "high": {"score": 0.583, "usdPerTask": 1.64},
-          "xhigh": {"score": 0.605, "usdPerTask": 2.21},
-          "max": {"score": 0.644, "usdPerTask": 3.25}
+          "low": {
+            "score": 0.439,
+            "usdPerTask": 0.97
+          },
+          "medium": {
+            "score": 0.54,
+            "usdPerTask": 1.32
+          },
+          "high": {
+            "score": 0.583,
+            "usdPerTask": 1.64
+          },
+          "xhigh": {
+            "score": 0.605,
+            "usdPerTask": 2.21
+          },
+          "max": {
+            "score": 0.644,
+            "usdPerTask": 3.25
+          }
+        }
+      }
+    },
+    "aa-terminal-bench-4.0": {
+      "what": "agentic coding and terminal use (Artificial Analysis)",
+      "models": {
+        "gpt-6-luna": {
+          "high": {
+            "score": 0.05,
+            "usdPerTask": 0.03
+          }
+        },
+        "gpt-6.1-sol": {
+          "low": {
+            "score": 0.31,
+            "usdPerTask": 0.13
+          }
+        }
+      }
+    },
+    "aa-automationbench": {
+      "what": "agentic SaaS workflows (Artificial Analysis)",
+      "models": {
+        "gpt-6-luna": {
+          "high": {
+            "score": 0.48,
+            "usdPerTask": 0.03
+          }
+        },
+        "gpt-6.1-sol": {
+          "low": {
+            "score": 0.53,
+            "usdPerTask": 0.13
+          }
+        }
+      }
+    },
+    "aa-scicode": {
+      "what": "scientific coding (Artificial Analysis)",
+      "models": {
+        "gpt-6-luna": {
+          "high": {
+            "score": 0.5,
+            "usdPerTask": 0.03
+          }
+        },
+        "gpt-6.1-sol": {
+          "low": {
+            "score": 0.53,
+            "usdPerTask": 0.13
+          }
+        }
+      }
+    },
+    "aa-humanitys-last-exam": {
+      "what": "reasoning and knowledge (Artificial Analysis)",
+      "models": {
+        "gpt-6-luna": {
+          "high": {
+            "score": 0.33,
+            "usdPerTask": 0.03
+          }
+        },
+        "gpt-6.1-sol": {
+          "low": {
+            "score": 0.47,
+            "usdPerTask": 0.13
+          }
+        }
+      }
+    },
+    "aa-gdp-pdf": {
+      "what": "professional document reasoning (Artificial Analysis)",
+      "models": {
+        "gpt-6-luna": {
+          "high": {
+            "score": 0.18,
+            "usdPerTask": 0.03
+          }
+        },
+        "gpt-6.1-sol": {
+          "low": {
+            "score": 0.27,
+            "usdPerTask": 0.13
+          }
+        }
+      }
+    },
+    "aa-critpt": {
+      "what": "physics reasoning (Artificial Analysis)",
+      "models": {
+        "gpt-6-luna": {
+          "high": {
+            "score": 0.15,
+            "usdPerTask": 0.03
+          }
+        },
+        "gpt-6.1-sol": {
+          "low": {
+            "score": 0.25,
+            "usdPerTask": 0.13
+          }
+        }
+      }
+    },
+    "aa-lcr-1.1": {
+      "what": "long-context reasoning (Artificial Analysis)",
+      "models": {
+        "gpt-6-luna": {
+          "high": {
+            "score": 0.79,
+            "usdPerTask": 0.03
+          }
+        },
+        "gpt-6.1-sol": {
+          "low": {
+            "score": 0.84,
+            "usdPerTask": 0.13
+          }
         }
       }
     }
-  }
+  },
+  "terminalBenchmark": "aa-terminal-bench-4.0"
 }
