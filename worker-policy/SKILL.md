@@ -30,11 +30,10 @@ This applicability gate takes precedence over every routing result below. A user
 | `FRONTIER_WORKER` | `gpt-6-luna` at `high` effort | Default worker for every delegated unit that is not terminal-heavy, while local is disabled; otherwise after local is exhausted or unsuitable, or for units the local interface cannot perform. |
 | `FRONTIER_RETRY` | `gpt-6-luna` at `max` effort | First worker for interpretation units (§3); otherwise a fresh worker for a unit `FRONTIER_WORKER` genuinely failed. |
 | `SOL_WORKER` | `gpt-6.1-sol` at `low` effort | Last rung of the `default` ladder (a fresh worker for a unit `FRONTIER_RETRY` genuinely failed) and second rung of the `interpret` ladder. Always 6.1 Sol: GPT-6 Sol at `low` solves barely half as many coding tasks. |
-| `SOL_MEDIUM` | `gpt-6.1-sol` at `medium` effort | First worker for terminal-heavy and analysis units (§3). |
-| `SOL_HIGH` | `gpt-6.1-sol` at `high` effort | A fresh worker for a terminal-heavy or analysis unit `SOL_MEDIUM` genuinely failed. |
+| `SOL_MEDIUM` | `gpt-6.1-sol` at `medium` effort | First worker for terminal-heavy and analysis units (§3), and their retry: a fresh `SOL_MEDIUM` whose brief carries the failed attempt's summary. |
 | `CLEANUP_WORKER` | `gpt-6-luna` at `high` effort | The cleanup pass (§7) on an implementation unit's diff. |
 | `ORCHESTRATOR_DIRECT` | the runtime model | Only when `route_cost.py` returns `DIRECT_CHEAPER` (tiny unit), for authority work only the orchestrator and user can do, or for judgement that rests on what is already in your context (see below). |
-| `ORCHESTRATOR_BREAK_GLASS` | the runtime model | Last resort; see §6. |
+| `ORCHESTRATOR_BREAK_GLASS` | the runtime model | Exception path when delegation itself is broken, or to prevent a safety or authority failure; never a ladder rung. See §6. |
 
 ## 3. Routing procedure
 
@@ -48,7 +47,7 @@ This applicability gate takes precedence over every routing result below. A user
    - **Research comes in three kinds, by how much judgement it needs.** A research answer that is wrong does not fail a test; it passes silently into your decisions, so the riskier kinds go to stronger workers.
      - **Extraction** (locate and collect: where X is defined, which files match, the values, error lines or settings in given sources): `default` ladder, starting on `FRONTIER_WORKER` (Luna `high`). On Artificial Analysis's long-context reasoning benchmark it is within 5 points of 6.1 Sol `low` at about a third of the cost per solve.
      - **Interpretation** (read and summarise: what long documents, PDFs, tables, specs or logs say and mean): `interpret` ladder, `FRONTIER_RETRY` (Luna `max`) → `SOL_WORKER`. On document reasoning Luna `max` scores 23% against `high`'s 18% and `xhigh`'s 19%, and OpenAI reports its factual error rate at 7.6% against `high`'s 12.5%; `xhigh` buys almost none of that. Luna `max` takes about 7 minutes per task, so when the answer is needed quickly, start on `SOL_WORKER`, which is about four times faster for about twice the price.
-     - **Analysis** (judgement: compare options, decide, diagnose a cause, explain why, or anything needing knowledge beyond the sources): `judgement` ladder, `SOL_MEDIUM` → `SOL_HIGH`. Luna answers from memory more often wrongly than rightly at every effort (Artificial Analysis knowledge score −6 at `high`, 1 at `max`, 38 for 6.1 Sol `low`, 40 at `medium`).
+     - **Analysis** (judgement: compare options, decide, diagnose a cause, explain why, or anything needing knowledge beyond the sources): `judgement` ladder, `SOL_MEDIUM` → a fresh `SOL_MEDIUM`. Luna answers from memory more often wrongly than rightly at every effort (Artificial Analysis knowledge score −6 at `high`, 1 at `max`, 38 for 6.1 Sol `low`, 40 at `medium`).
      - Extraction and interpretation briefs require a citation for every claim (`path:line`, or a URL with a short quote) and forbid filling gaps from memory: an uncited claim is reported as unverified, and you treat it that way. Analysis briefs ask for the reasoning, the evidence it rests on, and a confidence level.
 4. **Delegate with a tight brief**: concrete objective, acceptance criteria, output shape (256–512 tokens for research answers), evidence paths, and exact approved commands. For code changes, also give a diff budget (roughly how many added lines the change should need) and ask for the smallest change that meets the acceptance criteria: reuse existing helpers, no new files or abstractions the unit does not need, no commented-out code, no debug output left behind.
 5. **Integrate** the returned evidence summary: files changed, commands run, outcome, limitations, next action. Review proportionately and do not redo the unit. For a code change, run the cleanup check (§7) before accepting it.
@@ -70,7 +69,7 @@ Skip this section while `local.enabled` is `false`. When enabled, a local worker
 
 Routing saves nothing if supervision is chatty. Every time a worker's message or a wait result returns, the orchestrator takes a full turn and re-reads its whole context at its own rate, so a coordination round costs about as much as an orchestrator work turn. In one measured session a Sol orchestrator spent ~90% of 1,124 turns on `wait_agent` / `send_message` / `followup_task` (more than its 31 Luna workers cost combined), and one worker looped 1,802 times.
 
-- **Always pass the worker's model and effort explicitly.** Every `spawn_agent` call sets `model` and `reasoning_effort` from the role table in §2 (for example `model: "gpt-6-luna"`, `reasoning_effort: "high"` for a `FRONTIER_WORKER`), even when a custom agent type is named after Luna. A spawn without `model` can inherit the orchestrator's model: in one observed case three workers spawned that way ran on `gpt-6.1-sol`. A spawn without `reasoning_effort` inherits the orchestrator's effort, often `medium`, where Luna solves a quarter fewer coding tasks than at `high`. If a proxy-generated agent description says the `model` argument is ignored, pass it anyway. Never spawn an Astra worker, and spawn a Sol worker only as `SOL_WORKER`, `SOL_MEDIUM` or `SOL_HIGH` (§6).
+- **Always pass the worker's model and effort explicitly.** Every `spawn_agent` call sets `model` and `reasoning_effort` from the role table in §2 (for example `model: "gpt-6-luna"`, `reasoning_effort: "high"` for a `FRONTIER_WORKER`), even when a custom agent type is named after Luna. A spawn without `model` can inherit the orchestrator's model: in one observed case three workers spawned that way ran on `gpt-6.1-sol`. A spawn without `reasoning_effort` inherits the orchestrator's effort, often `medium`, where Luna solves a quarter fewer coding tasks than at `high`. If a proxy-generated agent description says the `model` argument is ignored, pass it anyway. Never spawn an Astra worker, and spawn a Sol worker only as `SOL_WORKER` or `SOL_MEDIUM` (§6).
 - **Start workers without your history.** Pass `fork_turns: "none"`. The default (`all`) copies the orchestrator's whole conversation into the worker, which then re-reads it on every turn; the brief must carry everything the unit needs instead.
 - **Brief once, completely.** A spawned `FRONTIER_WORKER` gets the whole unit up front: objective, acceptance criteria, evidence paths, approved commands, output shape, and a turn budget. Prefer one larger unit over a series of `followup_task`s. Within the same unit, a follow-up is fine for a changed requirement, an acceptance failure the worker must fix, or an answer to a blocker it raised; never use it to hand the worker its next unit.
 - **Wait, don't poll.** Spawn independent workers together, then block on them with the longest wait the tool allows. Never loop on short waits, `list_agents`, or `sleep` to watch progress, and never message a worker to ask for status.
@@ -82,16 +81,23 @@ Routing saves nothing if supervision is chatty. Every time a worker's message or
 
 ## 6. Failure, escalation, and break-glass
 
-The default ladder is `LOCAL_DEFAULT` (when enabled) → bounded local recovery → `FRONTIER_WORKER` (Luna `high`) → `FRONTIER_RETRY` (Luna `max`) → `SOL_WORKER` (6.1 Sol `low`) → `ORCHESTRATOR_BREAK_GLASS`. The terminal ladder (§3) is `SOL_MEDIUM` (6.1 Sol `medium`) → `SOL_HIGH` (6.1 Sol `high`) → `ORCHESTRATOR_BREAK_GLASS`; Luna is skipped there because it rarely solves terminal tasks at any effort. Analysis units use the same Sol rungs (the `judgement` ladder), and interpretation units climb `FRONTIER_RETRY` (Luna `max`) → `SOL_WORKER` → `ORCHESTRATOR_BREAK_GLASS` (the `interpret` ladder). Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate. A unit climbs one rung per genuine semantic failure (the worker tried the unit properly and could not do it, or its result failed acceptance and a follow-up could not fix it), or on an authority, integrity, or eligibility condition. A busy queue is not a failure. Each rung is a fresh worker (§5) whose brief adds the failed attempt's summary: what was tried, and why it failed.
+The default ladder is `LOCAL_DEFAULT` (when enabled) → bounded local recovery → `FRONTIER_WORKER` (Luna `high`) → `FRONTIER_RETRY` (Luna `max`) → `SOL_WORKER` (6.1 Sol `low`). The terminal ladder (§3) is `SOL_MEDIUM` (6.1 Sol `medium`) → a fresh `SOL_MEDIUM`; Luna is skipped there because it rarely solves terminal tasks at any effort, and the retry gains more from the failure summary in its brief than from higher effort (6.1 Sol `high` adds 4 points on Terminal-Bench for 52% more cost). Analysis units use the same Sol rungs (the `judgement` ladder), and interpretation units climb `FRONTIER_RETRY` (Luna `max`) → `SOL_WORKER` (the `interpret` ladder). Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate. A unit climbs one rung per genuine semantic failure (the worker tried the unit properly and could not do it, or its result failed acceptance and a follow-up could not fix it), or on an authority, integrity, or eligibility condition. A busy queue is not a failure. Each rung is a fresh worker (§5) whose brief adds the failed attempt's summary: what was tried, and why it failed.
 
-Outside a `DIRECT_CHEAPER` result, the orchestrator may act directly only through an explicit `ORCHESTRATOR_BREAK_GLASS` decision, and only when all four conditions hold:
+**When a ladder runs out.** When the last rung of any ladder (`default`, `terminal`, `interpret` or `judgement`) genuinely fails, stop climbing and review the failure summaries yourself: this is judgement over what you already hold (§3), so read nothing new. Then either:
+
+- **re-plan once**: split the unit smaller, fix the brief, or add the missing context, then restart that unit's ladder from its first rung; or
+- **report to the user** with the failure summaries and what you think blocks the unit, when re-planning does not fit or the re-planned pass also runs out.
+
+Never re-plan a unit twice, and never do the unit yourself because the workers could not.
+
+Break-glass is not a rung of any ladder. Outside a `DIRECT_CHEAPER` result, the orchestrator may act directly only through an explicit `ORCHESTRATOR_BREAK_GLASS` decision, and only when all four conditions hold:
 
 1. the required worker delegation is unavailable or demonstrably broken;
 2. the applicable local roles were tried or ruled out with stated reasons (disabled counts as ruled out);
-3. the unit's paid ladder (the `default`, `terminal`, `interpret` or `judgement` ladder in `worker-routing.json`) has also been tried or ruled out as unable to do the unit; and
+3. the unit's paid ladder (the `default`, `terminal`, `interpret` or `judgement` ladder in `worker-routing.json`) has also been tried or ruled out as unavailable; a ladder whose workers ran but could not do the unit goes to the re-plan-or-report step above instead; and
 4. the direct action is minimal, reversible where practical, and needed to restore delegation or prevent an immediate safety or authority failure.
 
-Record it before acting: one line in your report naming the unit, which conditions hold, and why. Break-glass never covers ordinary implementation, diagnostics, testing, or verification just because delegation is inconvenient, and it cannot be added retroactively.
+Record it before acting: one line in your report naming the unit, which conditions hold, and why. Break-glass never covers ordinary implementation, diagnostics, testing, or verification just because delegation is inconvenient or the workers could not do the unit, and it cannot be added retroactively.
 
 ## 7. Cleanup pass
 
@@ -106,6 +112,7 @@ Higher-effort workers solve more but write more: extra helpers, defensive branch
 Before reporting completion, confirm that:
 
 - every worker-plane unit was delegated, or has a `DIRECT_CHEAPER` result or a break-glass record for not being delegated;
+- every unit whose ladder ran out was re-planned once or reported to the user with its failure summaries;
 - spawned workers got an explicit model and effort and no forked history, were briefed once, waited on rather than polled, served one unit each, and stayed within their turn budget;
 - every code change has a `diff_stats.py` result, and a `CLEANUP_RECOMMENDED` result got its one cleanup pass;
 - the context check (§9) ran at its fixed points, and a `status=PROMPT_USER` result was reported to the user with the handover offer;

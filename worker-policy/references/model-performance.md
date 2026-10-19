@@ -68,12 +68,30 @@ Expected cost per solve ($0.10 failure penalty):
 
 Luna `high` wins on AA-Briefcase (1186 vs 1117 for Sol `low`) and GDPval-AA (1340 vs 1315), both agentic knowledge-work Elo ratings; Luna `max` and Sol `medium` lead both. Luna's Omniscience score stays near zero at every effort: from memory it answers wrongly about as often as rightly, so research briefs make it work from sources, not recall. For extraction, `xhigh` adds about one point on both document benchmarks for a third more cost and time; `max` adds 4–5 points and cuts OpenAI's measured factual error rate from 12.5% to 7.6%.
 
+## Independent: Artificial Analysis, 6.1 Sol by effort
+
+From the Artificial Analysis [comparison of 6.1 Sol at every effort](https://artificialanalysis.ai/models/comparisons?compare=gpt-6-1-sol%2Cgpt-6-1-sol-low%2Cgpt-6-1-sol-high%2Cgpt-6-1-sol-medium%2Cgpt-6-1-sol-xhigh), checked 2026-10-20 (`max` is listed as plain `gpt-6-1-sol`). The JSON stores these under the same `aa-*` benchmarks.
+
+| Benchmark | `low` | `medium` | `high` | `xhigh` | `max` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **Terminal-Bench 4.0** | **31%** | **48%** | **52%** | **54%** | **56%** |
+| AutomationBench-AA | 53% | 63% | 64% | 67% | 65% |
+| SciCode | 53% | 53% | 56% | 56% | 54% |
+| Humanity's Last Exam | 47% | 50% | 51% | 53% | 53% |
+| GDP.pdf | 27% | 30% | 32% | 32% | 31% |
+| CritPt | 25% | 28% | 30% | 32% | 32% |
+| AA-LCR v1.1 | 84% | 83% | 82% | 80% | 83% |
+| Cost per task | $0.13 | $0.21 | $0.32 | $0.39 | $0.72 |
+| **Terminal-Bench $/solve ($0.10 penalty)** | 0.64 | **0.55** | 0.71 | 0.81 | 1.36 |
+
+Above `medium`, effort buys little: `high` adds 4 points on Terminal-Bench and 1–2 on the reasoning benchmarks for 52% more cost and about 45% more time per task, and `xhigh` and `max` add only a few points more at still higher cost. A failed unit gains more from a fresh attempt whose brief carries the failure summary than from more effort, so the terminal and analysis retry is a second 6.1 Sol `medium`.
+
 ## What the policy takes from this
 
 - **Research is split by how much judgement it needs,** because a wrong research answer passes silently instead of failing a test, so the $0.10 failure penalty understates its cost. *Extraction* (locate and collect from given sources) stays on Luna `high`: on long-context reasoning it is within 5 points of Sol `low` at about a third of the cost per solve, and every claim must be cited. *Interpretation* (summarise and interpret documents) starts on Luna `max`, the one effort step that clearly improves document reasoning and factual accuracy; `xhigh` is skipped. *Analysis* (compare, decide, diagnose, explain) starts on 6.1 Sol `medium`, because Luna's judgement and recall are weak at every effort and a wrong judgement is the costliest silent failure.
-- **Terminal-heavy units start on 6.1 Sol `medium`.** Debugging, running and fixing tests, builds and environment setup are what Terminal-Bench measures. There Sol `medium` solves 48% against `low`'s 31% and Luna `high`'s 5%, the cheapest per solve of all ($0.55, against $0.64 and $2.50). Their retry is a fresh 6.1 Sol `high` (the best 6.1 Sol effort on DeepSWE, 75.2%); Luna is skipped.
+- **Terminal-heavy units start on 6.1 Sol `medium`.** Debugging, running and fixing tests, builds and environment setup are what Terminal-Bench measures. There Sol `medium` solves 48% against `low`'s 31% and Luna `high`'s 5%, the cheapest per solve of all ($0.55, against $0.64 and $2.50). Their retry is a fresh 6.1 Sol `medium` with the failed attempt's summary in its brief, not `high`, which adds 4 points for 52% more cost; Luna is skipped.
 - **Luna `high` is the default worker for everything else.** It is the cheapest per solved coding task. `medium` (the Codex default a worker inherits when no effort is passed) solves a quarter fewer tasks, and `low` is unusable for agent work.
 - **`xhigh` is not worth it as a default.** It adds about 2 points on DeepSWE for 31% more cost, and scores *below* `high` on FrontierCode and AutomationBench.
 - **`max` is the retry.** It is the strongest Luna setting on every benchmark, so it is the best second attempt at a unit `high` failed, even though it is too expensive per solve to be the default.
-- **6.1 Sol `low` is the last worker rung,** never GPT-6 Sol: at `low`, 6.1 Sol solves 64.4% of DeepSWE tasks and GPT-6 Sol 37.2%, at nearly the same price. On coding, 6.1 Sol `low` is actually cheaper per solve than Luna `max`. It is a different model, so it is also less likely to repeat Luna's mistake.
+- **6.1 Sol `low` is the last rung of the default ladder,** never GPT-6 Sol: at `low`, 6.1 Sol solves 64.4% of DeepSWE tasks and GPT-6 Sol 37.2%, at nearly the same price. On coding, 6.1 Sol `low` is actually cheaper per solve than Luna `max`. It is a different model, so it is also less likely to repeat Luna's mistake.
 - **Benchmark tasks are harder than a typical delegated unit,** so `route_cost.py` scales failure rates by `costModel.unitHardness` (default 0.5: Luna `high` fails about 20% of units).

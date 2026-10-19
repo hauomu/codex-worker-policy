@@ -23,7 +23,7 @@ import subprocess  # noqa: E402
 import tempfile  # noqa: E402
 
 PAID_LADDER = ("FRONTIER_WORKER", "FRONTIER_RETRY", "SOL_WORKER")
-TERMINAL_LADDER = ("SOL_MEDIUM", "SOL_HIGH")
+TERMINAL_LADDER = ("SOL_MEDIUM", "SOL_MEDIUM")
 TERMINAL_KINDS = ("debugging", "testing", "build", "environment")
 LADDERS = {
     "default": PAID_LADDER,
@@ -33,8 +33,9 @@ LADDERS = {
 }
 KIND_LADDERS = {**{k: "terminal" for k in TERMINAL_KINDS},
                 "extraction": "default", "interpretation": "interpret", "analysis": "judgement"}
-PAID_ROLES = PAID_LADDER + TERMINAL_LADDER + ("CLEANUP_WORKER",)
-SOL_ROLES = ("SOL_WORKER",) + TERMINAL_LADDER
+PAID_ROLES = PAID_LADDER + ("SOL_MEDIUM", "CLEANUP_WORKER")
+SOL_ROLES = ("SOL_WORKER", "SOL_MEDIUM")
+RETIRED_ROLES = ("SOL_HIGH",)
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 
 # (description, regex) pairs that must each match the policy text.
@@ -62,8 +63,12 @@ REQUIRED_PATTERNS = (
     ("reasoning_effort on every spawn", r"`reasoning_effort`"),
     ("no forked history", r'`fork_turns: "none"`'),
     ("no Astra workers", r"Never spawn an Astra worker"),
-    ("escalation ladder", r"`LOCAL_DEFAULT`.*→ .*`FRONTIER_WORKER`.*→ `FRONTIER_RETRY`.*→ `SOL_WORKER`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
-    ("terminal ladder", r"terminal ladder.*`SOL_MEDIUM`.*→ `SOL_HIGH`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
+    ("escalation ladder", r"`LOCAL_DEFAULT`.*→ .*`FRONTIER_WORKER`.*→ `FRONTIER_RETRY`.*→ `SOL_WORKER`"),
+    ("terminal ladder retries Sol medium", r"terminal ladder.*`SOL_MEDIUM`.*→ a fresh `SOL_MEDIUM`"),
+    ("ladder exhaustion step", r"When a ladder runs out"),
+    ("exhausted ladder: re-plan once", r"re-plan once.*restart that unit's ladder from its first rung"),
+    ("exhausted ladder: report to the user", r"report to the user.*failure summaries"),
+    ("break-glass is not a rung", r"Break-glass is not a rung of any ladder"),
     ("ladder picked by unit kind", r"Pick the ladder by unit kind"),
     ("research split into three kinds", r"\*\*Extraction\*\*.*\*\*Interpretation\*\*.*\*\*Analysis\*\*"),
     ("research cites every claim", r"citation for every claim"),
@@ -133,6 +138,12 @@ def lint() -> list[str]:
         for name, expected in LADDERS.items():
             if tuple(ladders.get(name) or ()) != expected:
                 problems.append(f"worker-routing.json: ladders.{name} must be {list(expected)}")
+        if any(role in roles or role in policy for role in RETIRED_ROLES):
+            problems.append(f"retired roles still present: {', '.join(RETIRED_ROLES)}")
+        if any("ORCHESTRATOR_BREAK_GLASS" in (rungs or []) for rungs in ladders.values()):
+            problems.append("worker-routing.json: break-glass is not a ladder rung")
+        if re.search(r"→ `ORCHESTRATOR_BREAK_GLASS`", policy):
+            problems.append("policy: break-glass must not appear as a ladder rung")
         kinds = routing.get("kindLadders") or {}
         for kind, name in KIND_LADDERS.items():
             if kinds.get(kind) != name:
@@ -252,11 +263,18 @@ class RouteCostCases(unittest.TestCase):
             with self.subTest(kind=kind):
                 self.assertEqual(self.shipped_ladder(kind), [
                     ("SOL_MEDIUM", "gpt-6.1-sol", "medium"),
-                    ("SOL_HIGH", "gpt-6.1-sol", "high"),
+                    ("SOL_MEDIUM", "gpt-6.1-sol", "medium"),
                 ])
         for kind in ("implementation", "extraction", "other"):
             with self.subTest(kind=kind):
                 self.assertEqual(self.shipped_ladder(kind)[0], ("FRONTIER_WORKER", "gpt-6-luna", "high"))
+
+    def test_repeated_rung_prices_two_attempts(self):
+        r = self.route(read=20_000, turns=6, ladder=self.shipped_ladder("debugging"))
+        self.assertEqual([rung["role"] for rung in r["ladder"]], ["SOL_MEDIUM", "SOL_MEDIUM"])
+        once = self.route(read=20_000, turns=6, ladder=self.shipped_ladder("debugging")[:1])
+        self.assertGreater(r["usd"]["frontier"], 0)
+        self.assertNotEqual(r["usd"]["frontier"], once["usd"]["frontier"])
 
     def test_research_kinds_pick_their_first_worker(self):
         self.assertEqual(self.shipped_ladder("interpretation"),

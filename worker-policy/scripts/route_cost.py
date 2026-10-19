@@ -7,10 +7,11 @@ Deterministic, linear-in-price cost model (no model call, no network):
     (cached) on every later turn while it stays resident;
   * delegation costs the orchestrator a brief, a couple of turns and a resident summary,
     plus the worker's own tokens and the expected cost of climbing the unit's worker
-    ladder when a rung fails, then falling back to the orchestrator. --kind picks the
-    ladder (worker-routing.json kindLadders): terminal-heavy kinds (debugging, testing,
-    build, environment) and analysis start on 6.1 Sol medium, interpretation on Luna max,
-    everything else on Luna high.
+    ladder when a rung fails. When the whole ladder fails, the orchestrator re-plans the
+    unit or hands it back to the user; that cost is approximated by the direct cost.
+    --kind picks the ladder (worker-routing.json kindLadders): terminal-heavy kinds
+    (debugging, testing, build, environment) and analysis get two 6.1 Sol medium
+    attempts, interpretation starts on Luna max, everything else on Luna high.
 
 Worker cost and failure rate depend on reasoning effort. Both come from
 references/model-performance.json: a rung's cost scales with its published cost per task,
@@ -176,7 +177,8 @@ def estimate(pricing, *, model, context, remaining_turns, read, output, turns, k
     # The token model prices the unit for Luna at high effort; every rung scales by its
     # published cost per task relative to that, which also captures how many tokens each
     # model spends. Walk the ladder from the top: every failed rung costs another spawn
-    # plus the next rung, and the last rung falls back to the orchestrator (break-glass).
+    # plus the next rung. A failed last rung means re-planning the unit or handing it back
+    # to the user, approximated by the direct cost; break-glass is never a ladder rung.
     _, f, _ = resolve_price(pricing, pricing["frontierWorker"])
     base = read + cm["frontierBaseTokens"]
     first_work = usd(base, f["input"]) + usd(base * turns, f["cachedInput"]) + usd(output * 1.5, f["output"])
