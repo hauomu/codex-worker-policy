@@ -231,7 +231,6 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--model", help="runtime orchestrator model id (default: pricing.json defaultOrchestrator)")
     ap.add_argument("--context", type=int, help="orchestrator's current context tokens")
-    ap.add_argument("--remaining-turns", type=int, help="expected orchestrator turns left in the task")
     ap.add_argument("--read", type=int, help="tokens you would read to do the unit yourself")
     ap.add_argument("--output", type=int, help="tokens you would write")
     ap.add_argument("--turns", type=int, help="tool turns the unit needs")
@@ -253,7 +252,9 @@ def main(argv=None):
         return 0
     routing = load_json("worker-routing.json")
     eligible_local = bool((routing.get("local") or {}).get("enabled"))
-    r = estimate(pricing, model=a.model, context=a.context, remaining_turns=a.remaining_turns,
+    # The horizon is fixed (costModel.remainingTurns) on purpose: "the session is nearly
+    # over" is hard to judge and must not become a reason to absorb work.
+    r = estimate(pricing, model=a.model, context=a.context, remaining_turns=None,
                  read=a.read, output=a.output, turns=a.turns, kind=a.kind, eligible_local=eligible_local,
                  ladder=ladder_profiles(routing, a.kind), perf=load_performance())
     if a.json:
