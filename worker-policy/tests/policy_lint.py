@@ -67,6 +67,8 @@ REQUIRED_PATTERNS = (
     ("ladder picked by unit kind", r"Pick the ladder by unit kind"),
     ("research split into three kinds", r"\*\*Extraction\*\*.*\*\*Interpretation\*\*.*\*\*Analysis\*\*"),
     ("research cites every claim", r"citation for every claim"),
+    ("new material decides direct work", r"brings \*\*new material\*\* into your context"),
+    ("session end never justifies direct work", r"never a reason for direct work"),
     ("one rung per semantic failure", r"one rung per genuine semantic failure"),
     ("non-escalating failures", r"Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate"),
     ("break-glass condition: paid ladder tried", r"paid ladder .*has also been tried or ruled out"),

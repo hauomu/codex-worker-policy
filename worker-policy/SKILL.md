@@ -33,7 +33,7 @@ This applicability gate takes precedence over every routing result below. A user
 | `SOL_MEDIUM` | `gpt-6.1-sol` at `medium` effort | First worker for terminal-heavy and analysis units (§3). |
 | `SOL_HIGH` | `gpt-6.1-sol` at `high` effort | A fresh worker for a terminal-heavy or analysis unit `SOL_MEDIUM` genuinely failed. |
 | `CLEANUP_WORKER` | `gpt-6-luna` at `high` effort | The cleanup pass (§7) on an implementation unit's diff. |
-| `ORCHESTRATOR_DIRECT` | the runtime model | Only when `route_cost.py` returns `DIRECT_CHEAPER` (tiny unit) or for authority work only the orchestrator and user can do. |
+| `ORCHESTRATOR_DIRECT` | the runtime model | Only when `route_cost.py` returns `DIRECT_CHEAPER` (tiny unit), for authority work only the orchestrator and user can do, or for judgement that rests on what is already in your context (see below). |
 | `ORCHESTRATOR_BREAK_GLASS` | the runtime model | Last resort; see §6. |
 
 ## 3. Routing procedure
@@ -54,6 +54,13 @@ This applicability gate takes precedence over every routing result below. A user
 5. **Integrate** the returned evidence summary: files changed, commands run, outcome, limitations, next action. Review proportionately and do not redo the unit. For a code change, run the cleanup check (§7) before accepting it.
 
 Bulk context (crawling, ingestion, filtering, extraction, reduction) always goes to a worker, never raw into the orchestrator. Deterministic metadata collection (`rg`, `find`, `ls`, `du`, hashes, manifests) is fine to run yourself when delegating it would cost more than it saves.
+
+What decides direct work is whether the unit brings **new material** into your context. Anything you read stays there for the rest of the session: it is re-read on every later turn, uses up the window the whole session shares, and dilutes every later supervisory judgement. So:
+
+- **Keep judgement over what you already know.** Choosing between workers' results, reconciling a finding with the user's constraints or earlier decisions, and deciding the next step rest on context only you hold; delegating them would mean restating that context in a lossy brief. Do them yourself, reading nothing new beyond the workers' summaries.
+- **Small reads you must act on verbatim** (one error message, config block or function signature) go through `route_cost.py` like any small unit; inside its hard caps, reading the source yourself is usually cheaper than a worker's lossy summary that you might end up checking anyway.
+- **Everything that brings new material in goes to a worker,** however capable you are: a worker of your own model at your own effort does the same research in a clean, small context, for less. When the research needs session context to be done well, put that context in the brief (constraints, what is already known or ruled out) rather than doing the reading yourself.
+- **How close the session seems to its end is never a reason for direct work.** It is hard to judge, and the cost model deliberately assumes a fixed horizon.
 
 ## 4. Local worker callability
 

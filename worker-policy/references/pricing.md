@@ -45,7 +45,7 @@ Fast mode burns included usage at 2.5× (credits 2×); Ultrafast at 8× (credits
 | Key | Default | Meaning |
 | --- | ---: | --- |
 | `contextTokens` | 40,000 | Orchestrator context assumed when `--context` is not given. |
-| `remainingTurns` | 10 | Later turns that re-read anything the orchestrator reads now. |
+| `remainingTurns` | 10 | Later turns that re-read anything the orchestrator reads now. Fixed on purpose and not settable per call: how close the session is to its end is hard to judge and is never a reason for direct work. |
 | `briefTokens` / `summaryTokens` | 400 / 600 | Cost of writing a brief and keeping a worker's summary resident. |
 | `delegationTurns` | 2 | Orchestrator turns spent spawning and integrating. |
 | `frontierBaseTokens` | 15,000 | Baseline context a fresh worker starts with. |
