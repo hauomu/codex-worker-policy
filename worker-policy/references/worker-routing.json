@@ -1,5 +1,5 @@
 {
-  "version": "routing-v4-public",
+  "version": "routing-v5-public",
   "local": {
     "enabled": false,
     "note": "Set enabled to true only after installing a local worker MCP server. See references/local-workers.md.",
@@ -13,14 +13,28 @@
     "FRONTIER_WORKER": {"model": "gpt-6-luna", "effort": "high"},
     "FRONTIER_RETRY": {"model": "gpt-6-luna", "effort": "max"},
     "SOL_WORKER": {"model": "gpt-6.1-sol", "effort": "low"},
-    "SOL_RETRY": {"model": "gpt-6.1-sol", "effort": "medium"},
+    "SOL_MEDIUM": {"model": "gpt-6.1-sol", "effort": "medium"},
+    "SOL_HIGH": {"model": "gpt-6.1-sol", "effort": "high"},
     "CLEANUP_WORKER": {"model": "gpt-6-luna", "effort": "high"}
   },
   "ladders": {
-    "default": ["FRONTIER_WORKER", "FRONTIER_RETRY", "SOL_WORKER"],
-    "terminal": ["SOL_WORKER", "SOL_RETRY"],
-    "interpret": ["FRONTIER_RETRY", "SOL_WORKER"],
-    "judgement": ["SOL_WORKER", "SOL_RETRY"]
+    "default": [
+      "FRONTIER_WORKER",
+      "FRONTIER_RETRY",
+      "SOL_WORKER"
+    ],
+    "terminal": [
+      "SOL_MEDIUM",
+      "SOL_HIGH"
+    ],
+    "interpret": [
+      "FRONTIER_RETRY",
+      "SOL_WORKER"
+    ],
+    "judgement": [
+      "SOL_MEDIUM",
+      "SOL_HIGH"
+    ]
   },
   "kindLadders": {
     "extraction": "default",

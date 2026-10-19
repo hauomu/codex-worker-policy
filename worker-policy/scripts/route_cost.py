@@ -9,7 +9,7 @@ Deterministic, linear-in-price cost model (no model call, no network):
     plus the worker's own tokens and the expected cost of climbing the unit's worker
     ladder when a rung fails, then falling back to the orchestrator. --kind picks the
     ladder (worker-routing.json kindLadders): terminal-heavy kinds (debugging, testing,
-    build, environment) and analysis start on 6.1 Sol low, interpretation on Luna max,
+    build, environment) and analysis start on 6.1 Sol medium, interpretation on Luna max,
     everything else on Luna high.
 
 Worker cost and failure rate depend on reasoning effort. Both come from

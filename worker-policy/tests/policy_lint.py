@@ -23,18 +23,18 @@ import subprocess  # noqa: E402
 import tempfile  # noqa: E402
 
 PAID_LADDER = ("FRONTIER_WORKER", "FRONTIER_RETRY", "SOL_WORKER")
-TERMINAL_LADDER = ("SOL_WORKER", "SOL_RETRY")
+TERMINAL_LADDER = ("SOL_MEDIUM", "SOL_HIGH")
 TERMINAL_KINDS = ("debugging", "testing", "build", "environment")
 LADDERS = {
     "default": PAID_LADDER,
     "terminal": TERMINAL_LADDER,
     "interpret": ("FRONTIER_RETRY", "SOL_WORKER"),
-    "judgement": ("SOL_WORKER", "SOL_RETRY"),
+    "judgement": TERMINAL_LADDER,
 }
 KIND_LADDERS = {**{k: "terminal" for k in TERMINAL_KINDS},
                 "extraction": "default", "interpretation": "interpret", "analysis": "judgement"}
-PAID_ROLES = PAID_LADDER + ("SOL_RETRY", "CLEANUP_WORKER")
-SOL_ROLES = ("SOL_WORKER", "SOL_RETRY")
+PAID_ROLES = PAID_LADDER + TERMINAL_LADDER + ("CLEANUP_WORKER",)
+SOL_ROLES = ("SOL_WORKER",) + TERMINAL_LADDER
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 
 # (description, regex) pairs that must each match the policy text.
@@ -63,7 +63,7 @@ REQUIRED_PATTERNS = (
     ("no forked history", r'`fork_turns: "none"`'),
     ("no Astra workers", r"Never spawn an Astra worker"),
     ("escalation ladder", r"`LOCAL_DEFAULT`.*→ .*`FRONTIER_WORKER`.*→ `FRONTIER_RETRY`.*→ `SOL_WORKER`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
-    ("terminal ladder", r"terminal ladder.*`SOL_WORKER`.*→ `SOL_RETRY`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
+    ("terminal ladder", r"terminal ladder.*`SOL_MEDIUM`.*→ `SOL_HIGH`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
     ("ladder picked by unit kind", r"Pick the ladder by unit kind"),
     ("research split into three kinds", r"\*\*Extraction\*\*.*\*\*Interpretation\*\*.*\*\*Analysis\*\*"),
     ("research cites every claim", r"citation for every claim"),
@@ -245,12 +245,12 @@ class RouteCostCases(unittest.TestCase):
         routing = json.loads((POLICY_ROOT / "references" / "worker-routing.json").read_text(encoding="utf-8"))
         return route_cost.ladder_profiles(routing, kind)
 
-    def test_terminal_kinds_start_on_sol_low(self):
+    def test_terminal_kinds_start_on_sol_medium(self):
         for kind in TERMINAL_KINDS:
             with self.subTest(kind=kind):
                 self.assertEqual(self.shipped_ladder(kind), [
-                    ("SOL_WORKER", "gpt-6.1-sol", "low"),
-                    ("SOL_RETRY", "gpt-6.1-sol", "medium"),
+                    ("SOL_MEDIUM", "gpt-6.1-sol", "medium"),
+                    ("SOL_HIGH", "gpt-6.1-sol", "high"),
                 ])
         for kind in ("implementation", "extraction", "other"):
             with self.subTest(kind=kind):
@@ -259,7 +259,7 @@ class RouteCostCases(unittest.TestCase):
     def test_research_kinds_pick_their_first_worker(self):
         self.assertEqual(self.shipped_ladder("interpretation"),
                          [("FRONTIER_RETRY", "gpt-6-luna", "max"), ("SOL_WORKER", "gpt-6.1-sol", "low")])
-        self.assertEqual(self.shipped_ladder("analysis")[0], ("SOL_WORKER", "gpt-6.1-sol", "low"))
+        self.assertEqual(self.shipped_ladder("analysis")[0], ("SOL_MEDIUM", "gpt-6.1-sol", "medium"))
 
     def test_every_kind_with_a_ladder_has_size_defaults(self):
         routing = json.loads((POLICY_ROOT / "references" / "worker-routing.json").read_text(encoding="utf-8"))
@@ -270,6 +270,7 @@ class RouteCostCases(unittest.TestCase):
         per_solve = {(model, effort): cost for cost, model, effort, _ in rows}
         best_luna = min(cost for (model, _), cost in per_solve.items() if model == "gpt-6-luna")
         self.assertLess(per_solve[("gpt-6.1-sol", "low")], best_luna)
+        self.assertEqual(rows[0][1:3], ("gpt-6.1-sol", "medium"))
 
     def test_shipped_ladder_climbs_luna_high_max_then_sol_low(self):
         self.assertEqual(self.shipped_ladder(), [
