@@ -9,7 +9,8 @@ Deterministic, linear-in-price cost model (no model call, no network):
     plus the worker's own tokens and the expected cost of climbing the unit's worker
     ladder when a rung fails, then falling back to the orchestrator. --kind picks the
     ladder (worker-routing.json kindLadders): terminal-heavy kinds (debugging, testing,
-    build, environment) start on 6.1 Sol low, everything else on Luna high.
+    build, environment) and analysis start on 6.1 Sol low, interpretation on Luna max,
+    everything else on Luna high.
 
 Worker cost and failure rate depend on reasoning effort. Both come from
 references/model-performance.json: a rung's cost scales with its published cost per task,
@@ -27,7 +28,7 @@ reason is one of DIRECT_CHEAPER, OVER_DIRECT_CAPS, DIRECT_MARGIN_NOT_MET, DELEGA
 
 Usage:
   python route_cost.py --model gpt-6.1-sol --context 120000 --read 3000 --output 500 --turns 2
-  python route_cost.py --kind research --json
+  python route_cost.py --kind extraction --json
   python route_cost.py --rank          # expected cost per solved task for every model/effort
   python route_cost.py --rank --benchmark aa-terminal-bench-4.0
 """
@@ -52,7 +53,9 @@ DEFAULT_COST_MODEL = {
     "directMaxTurns": 4,
     "longContextThreshold": 272_000,
     "kindDefaults": {
-        "research": {"readTokens": 12_000, "outputTokens": 400, "turns": 5},
+        "extraction": {"readTokens": 12_000, "outputTokens": 400, "turns": 5},
+        "interpretation": {"readTokens": 20_000, "outputTokens": 600, "turns": 5},
+        "analysis": {"readTokens": 12_000, "outputTokens": 800, "turns": 5},
         "server_crawl": {"readTokens": 60_000, "outputTokens": 300, "turns": 10},
         "bulk_reduction": {"readTokens": 80_000, "outputTokens": 400, "turns": 8},
         "implementation": {"readTokens": 8_000, "outputTokens": 1_500, "turns": 5},
@@ -239,6 +242,8 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     pricing = load_pricing()
+    if a.kind not in pricing["costModel"]["kindDefaults"]:
+        ap.error(f"unknown --kind {a.kind!r}; choose from: {', '.join(pricing['costModel']['kindDefaults'])}")
     if a.rank:
         perf = load_performance(a.benchmark)
         penalty = pricing["costModel"]["failurePenaltyUsd"]

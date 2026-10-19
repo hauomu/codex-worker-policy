@@ -25,6 +25,14 @@ import tempfile  # noqa: E402
 PAID_LADDER = ("FRONTIER_WORKER", "FRONTIER_RETRY", "SOL_WORKER")
 TERMINAL_LADDER = ("SOL_WORKER", "SOL_RETRY")
 TERMINAL_KINDS = ("debugging", "testing", "build", "environment")
+LADDERS = {
+    "default": PAID_LADDER,
+    "terminal": TERMINAL_LADDER,
+    "interpret": ("FRONTIER_RETRY", "SOL_WORKER"),
+    "judgement": ("SOL_WORKER", "SOL_RETRY"),
+}
+KIND_LADDERS = {**{k: "terminal" for k in TERMINAL_KINDS},
+                "extraction": "default", "interpretation": "interpret", "analysis": "judgement"}
 PAID_ROLES = PAID_LADDER + ("SOL_RETRY", "CLEANUP_WORKER")
 SOL_ROLES = ("SOL_WORKER", "SOL_RETRY")
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
@@ -57,6 +65,8 @@ REQUIRED_PATTERNS = (
     ("escalation ladder", r"`LOCAL_DEFAULT`.*→ .*`FRONTIER_WORKER`.*→ `FRONTIER_RETRY`.*→ `SOL_WORKER`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
     ("terminal ladder", r"terminal ladder.*`SOL_WORKER`.*→ `SOL_RETRY`.*→ `ORCHESTRATOR_BREAK_GLASS`"),
     ("ladder picked by unit kind", r"Pick the ladder by unit kind"),
+    ("research split into three kinds", r"\*\*Extraction\*\*.*\*\*Interpretation\*\*.*\*\*Analysis\*\*"),
+    ("research cites every claim", r"citation for every claim"),
     ("one rung per semantic failure", r"one rung per genuine semantic failure"),
     ("non-escalating failures", r"Normal turn boundaries, malformed tool calls, transport errors, and service restarts never escalate"),
     ("break-glass condition: paid ladder tried", r"paid ladder .*has also been tried or ruled out"),
@@ -118,13 +128,13 @@ def lint() -> list[str]:
             if not isinstance(spec, dict) or not spec.get("model") or spec.get("effort") not in EFFORTS:
                 problems.append(f"worker-routing.json: {role} needs a model and an effort ({'/'.join(EFFORTS)})")
         ladders = routing.get("ladders") or {}
-        if tuple(ladders.get("default") or ()) != PAID_LADDER:
-            problems.append(f"worker-routing.json: ladders.default must be {list(PAID_LADDER)}")
-        if tuple(ladders.get("terminal") or ()) != TERMINAL_LADDER:
-            problems.append(f"worker-routing.json: ladders.terminal must be {list(TERMINAL_LADDER)}")
+        for name, expected in LADDERS.items():
+            if tuple(ladders.get(name) or ()) != expected:
+                problems.append(f"worker-routing.json: ladders.{name} must be {list(expected)}")
         kinds = routing.get("kindLadders") or {}
-        if any(kinds.get(kind) != "terminal" for kind in TERMINAL_KINDS):
-            problems.append(f"worker-routing.json: kindLadders must map {', '.join(TERMINAL_KINDS)} to terminal")
+        for kind, name in KIND_LADDERS.items():
+            if kinds.get(kind) != name:
+                problems.append(f"worker-routing.json: kindLadders.{kind} must be {name}")
         if any(name not in ladders for name in kinds.values()):
             problems.append("worker-routing.json: kindLadders names a ladder that does not exist")
         # Exact id on purpose: GPT-6 Sol at low solves far fewer tasks than 6.1 Sol at low.
@@ -242,13 +252,24 @@ class RouteCostCases(unittest.TestCase):
                     ("SOL_WORKER", "gpt-6.1-sol", "low"),
                     ("SOL_RETRY", "gpt-6.1-sol", "medium"),
                 ])
-        for kind in ("implementation", "research", "other"):
+        for kind in ("implementation", "extraction", "other"):
             with self.subTest(kind=kind):
                 self.assertEqual(self.shipped_ladder(kind)[0], ("FRONTIER_WORKER", "gpt-6-luna", "high"))
 
+    def test_research_kinds_pick_their_first_worker(self):
+        self.assertEqual(self.shipped_ladder("interpretation"),
+                         [("FRONTIER_RETRY", "gpt-6-luna", "max"), ("SOL_WORKER", "gpt-6.1-sol", "low")])
+        self.assertEqual(self.shipped_ladder("analysis")[0], ("SOL_WORKER", "gpt-6.1-sol", "low"))
+
+    def test_every_kind_with_a_ladder_has_size_defaults(self):
+        routing = json.loads((POLICY_ROOT / "references" / "worker-routing.json").read_text(encoding="utf-8"))
+        self.assertLessEqual(set(routing["kindLadders"]), set(self.pricing["costModel"]["kindDefaults"]))
+
     def test_sol_low_is_cheaper_per_solve_on_terminal_work(self):
         rows = route_cost.rank(route_cost.load_performance("aa-terminal-bench-4.0"), 0.10)
-        self.assertEqual(rows[0][1:3], ("gpt-6.1-sol", "low"))
+        per_solve = {(model, effort): cost for cost, model, effort, _ in rows}
+        best_luna = min(cost for (model, _), cost in per_solve.items() if model == "gpt-6-luna")
+        self.assertLess(per_solve[("gpt-6.1-sol", "low")], best_luna)
 
     def test_shipped_ladder_climbs_luna_high_max_then_sol_low(self):
         self.assertEqual(self.shipped_ladder(), [

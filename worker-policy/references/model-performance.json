@@ -251,12 +251,24 @@
           "high": {
             "score": 0.05,
             "usdPerTask": 0.03
+          },
+          "xhigh": {
+            "score": 0.08,
+            "usdPerTask": 0.04
+          },
+          "max": {
+            "score": 0.13,
+            "usdPerTask": 0.07
           }
         },
         "gpt-6.1-sol": {
           "low": {
             "score": 0.31,
             "usdPerTask": 0.13
+          },
+          "medium": {
+            "score": 0.48,
+            "usdPerTask": 0.21
           }
         }
       }
@@ -268,12 +280,24 @@
           "high": {
             "score": 0.48,
             "usdPerTask": 0.03
+          },
+          "xhigh": {
+            "score": 0.48,
+            "usdPerTask": 0.04
+          },
+          "max": {
+            "score": 0.53,
+            "usdPerTask": 0.07
           }
         },
         "gpt-6.1-sol": {
           "low": {
             "score": 0.53,
             "usdPerTask": 0.13
+          },
+          "medium": {
+            "score": 0.63,
+            "usdPerTask": 0.21
           }
         }
       }
@@ -285,12 +309,24 @@
           "high": {
             "score": 0.5,
             "usdPerTask": 0.03
+          },
+          "xhigh": {
+            "score": 0.52,
+            "usdPerTask": 0.04
+          },
+          "max": {
+            "score": 0.55,
+            "usdPerTask": 0.07
           }
         },
         "gpt-6.1-sol": {
           "low": {
             "score": 0.53,
             "usdPerTask": 0.13
+          },
+          "medium": {
+            "score": 0.53,
+            "usdPerTask": 0.21
           }
         }
       }
@@ -302,12 +338,24 @@
           "high": {
             "score": 0.33,
             "usdPerTask": 0.03
+          },
+          "xhigh": {
+            "score": 0.34,
+            "usdPerTask": 0.04
+          },
+          "max": {
+            "score": 0.39,
+            "usdPerTask": 0.07
           }
         },
         "gpt-6.1-sol": {
           "low": {
             "score": 0.47,
             "usdPerTask": 0.13
+          },
+          "medium": {
+            "score": 0.5,
+            "usdPerTask": 0.21
           }
         }
       }
@@ -319,12 +367,24 @@
           "high": {
             "score": 0.18,
             "usdPerTask": 0.03
+          },
+          "xhigh": {
+            "score": 0.19,
+            "usdPerTask": 0.04
+          },
+          "max": {
+            "score": 0.23,
+            "usdPerTask": 0.07
           }
         },
         "gpt-6.1-sol": {
           "low": {
             "score": 0.27,
             "usdPerTask": 0.13
+          },
+          "medium": {
+            "score": 0.3,
+            "usdPerTask": 0.21
           }
         }
       }
@@ -336,12 +396,24 @@
           "high": {
             "score": 0.15,
             "usdPerTask": 0.03
+          },
+          "xhigh": {
+            "score": 0.17,
+            "usdPerTask": 0.04
+          },
+          "max": {
+            "score": 0.19,
+            "usdPerTask": 0.07
           }
         },
         "gpt-6.1-sol": {
           "low": {
             "score": 0.25,
             "usdPerTask": 0.13
+          },
+          "medium": {
+            "score": 0.28,
+            "usdPerTask": 0.21
           }
         }
       }
@@ -353,16 +425,32 @@
           "high": {
             "score": 0.79,
             "usdPerTask": 0.03
+          },
+          "xhigh": {
+            "score": 0.8,
+            "usdPerTask": 0.04
+          },
+          "max": {
+            "score": 0.83,
+            "usdPerTask": 0.07
           }
         },
         "gpt-6.1-sol": {
           "low": {
             "score": 0.84,
             "usdPerTask": 0.13
+          },
+          "medium": {
+            "score": 0.83,
+            "usdPerTask": 0.21
           }
         }
       }
     }
   },
-  "terminalBenchmark": "aa-terminal-bench-4.0"
+  "terminalBenchmark": "aa-terminal-bench-4.0",
+  "extractionBenchmarks": [
+    "aa-lcr-1.1",
+    "aa-gdp-pdf"
+  ]
 }

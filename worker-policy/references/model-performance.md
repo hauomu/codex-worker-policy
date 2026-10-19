@@ -39,28 +39,38 @@ Luna's token price is 1/20 of 6.1 Sol's, but at higher effort it thinks for long
 | OSWorld 2.0 offline (computer use) | 31.5% / $0.062 | 41.4% / $0.12 | 46.7% / $0.16 | 52.7% / $0.27 | 43.9% / $0.97 |
 | Factual error rate (lower is better) | 17.5% | 12.5% | 10.2% | 7.6% | 11.4% |
 
-## Independent: Artificial Analysis, Luna `high` vs 6.1 Sol `low`
+## Independent: Artificial Analysis, Luna vs 6.1 Sol by effort
 
-From the [Artificial Analysis comparison](https://artificialanalysis.ai/models/comparisons?compare=gpt-6-luna-high%2Cgpt-6-1-sol-low) (Intelligence Index v4.3.2), checked 2026-10-20. Artificial Analysis reports one cost per task averaged over the whole index ($0.03 for Luna `high`, $0.13 for 6.1 Sol `low`), so the per-solve figures below use that average for every benchmark. The JSON stores these as the `aa-*` benchmarks; `route_cost.py --rank --benchmark aa-terminal-bench-4.0` ranks by one of them.
+From the Artificial Analysis comparisons of [Luna `high` vs 6.1 Sol `low`](https://artificialanalysis.ai/models/comparisons?compare=gpt-6-luna-high%2Cgpt-6-1-sol-low) and of [Luna `high`/`xhigh`/`max` vs 6.1 Sol `low`/`medium`](https://artificialanalysis.ai/models/comparisons?compare=gpt-6-luna-high%2Cgpt-6-luna%2Cgpt-6-luna-xhigh%2Cgpt-6-1-sol-medium%2Cgpt-6-1-sol-low) (Intelligence Index v4.3.2), checked 2026-10-20. Artificial Analysis reports one cost per task averaged over the whole index, so per-solve figures use that average for every benchmark. The JSON stores these as the `aa-*` benchmarks; `route_cost.py --rank --benchmark <name>` ranks by any of them.
 
-| Benchmark | Luna `high` | 6.1 Sol `low` | $/solve Luna | $/solve Sol |
-| --- | ---: | ---: | ---: | ---: |
-| **Terminal-Bench 4.0 (agentic coding & terminal use)** | **5%** | **31%** | **2.50** | **0.64** |
-| AutomationBench-AA (agentic SaaS workflows) | 48% | 53% | 0.17 | 0.33 |
-| SciCode (coding) | 50% | 53% | 0.16 | 0.33 |
-| Humanity's Last Exam (reasoning & knowledge) | 33% | 47% | 0.29 | 0.39 |
-| GDP.pdf (document reasoning) | 18% | 27% | 0.62 | 0.75 |
-| CritPt (physics reasoning) | 15% | 25% | 0.77 | 0.79 |
-| AA-LCR v1.1 (long-context reasoning) | 79% | 84% | 0.07 | 0.17 |
-| AA-Omniscience index (knowledge minus hallucination, −100…100) | −6 | 38 | | |
-| Intelligence Index | 33 | 42 | | |
-| Output tokens per task | 20k | 4k | | |
-| Time per task | 167 s | 92 s | | |
+| Benchmark | Luna `high` | Luna `xhigh` | Luna `max` | Sol `low` | Sol `medium` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **Terminal-Bench 4.0 (agentic coding & terminal use)** | **5%** | **8%** | **13%** | **31%** | **48%** |
+| AutomationBench-AA (agentic SaaS workflows) | 48% | 48% | 53% | 53% | 63% |
+| SciCode (coding) | 50% | 52% | 55% | 53% | 53% |
+| Humanity's Last Exam (reasoning & knowledge) | 33% | 34% | 39% | 47% | 50% |
+| **GDP.pdf (document reasoning)** | **18%** | **19%** | **23%** | **27%** | **30%** |
+| CritPt (physics reasoning) | 15% | 17% | 19% | 25% | 28% |
+| **AA-LCR v1.1 (long-context reasoning)** | **79%** | **80%** | **83%** | **84%** | **83%** |
+| **AA-Omniscience index (knowledge minus hallucination, −100…100)** | **−6** | **−2** | **1** | **38** | **40** |
+| Intelligence Index | 33 | 35 | 38 | 42 | 48 |
+| Cost per task | $0.03 | $0.04 | $0.07 | $0.13 | $0.21 |
+| Output tokens per task | 20k | 27k | 50k | 4k | 8k |
+| Time per task | 167 s | 222 s | 408 s | 92 s | 184 s |
 
-Luna `high` wins on AA-Briefcase (1186 vs 1117) and GDPval-AA (1340 vs 1315), both agentic knowledge-work Elo ratings. 6.1 Sol `low` scores higher on everything else, but Luna stays cheaper per solve except on terminal work, where it almost never finishes. Its negative Omniscience score means that from memory it answers wrongly more often than rightly, so research briefs should make it work from sources, not recall.
+Expected cost per solve ($0.10 failure penalty):
+
+| Benchmark | Luna `high` | Luna `xhigh` | Luna `max` | Sol `low` | Sol `medium` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Terminal-Bench 4.0 | 2.50 | 1.65 | 1.21 | 0.64 | **0.55** |
+| GDP.pdf | **0.62** | 0.64 | 0.64 | 0.75 | 0.93 |
+| AA-LCR v1.1 | **0.07** | 0.08 | 0.11 | 0.17 | 0.27 |
+
+Luna `high` wins on AA-Briefcase (1186 vs 1117 for Sol `low`) and GDPval-AA (1340 vs 1315), both agentic knowledge-work Elo ratings; Luna `max` and Sol `medium` lead both. Luna's Omniscience score stays near zero at every effort: from memory it answers wrongly about as often as rightly, so research briefs make it work from sources, not recall. For extraction, `xhigh` adds about one point on both document benchmarks for a third more cost and time; `max` adds 4–5 points and cuts OpenAI's measured factual error rate from 12.5% to 7.6%.
 
 ## What the policy takes from this
 
+- **Research is split by how much judgement it needs,** because a wrong research answer passes silently instead of failing a test, so the $0.10 failure penalty understates its cost. *Extraction* (locate and collect from given sources) stays on Luna `high`: on long-context reasoning it is within 5 points of Sol `low` at about a third of the cost per solve, and every claim must be cited. *Interpretation* (summarise and interpret documents) starts on Luna `max`, the one effort step that clearly improves document reasoning and factual accuracy; `xhigh` is skipped. *Analysis* (compare, decide, diagnose, explain) starts on 6.1 Sol `low`, because Luna's judgement and recall are weak at every effort.
 - **Terminal-heavy units start on 6.1 Sol `low`.** Debugging, running and fixing tests, builds and environment setup are what Terminal-Bench measures. There Sol is about four times cheaper per solve, and it finishes faster. Their retry is 6.1 Sol `medium`; Luna is skipped.
 - **Luna `high` is the default worker for everything else.** It is the cheapest per solved coding task. `medium` (the Codex default a worker inherits when no effort is passed) solves a quarter fewer tasks, and `low` is unusable for agent work.
 - **`xhigh` is not worth it as a default.** It adds about 2 points on DeepSWE for 31% more cost, and scores *below* `high` on FrontierCode and AutomationBench.

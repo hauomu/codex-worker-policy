@@ -18,9 +18,14 @@
   },
   "ladders": {
     "default": ["FRONTIER_WORKER", "FRONTIER_RETRY", "SOL_WORKER"],
-    "terminal": ["SOL_WORKER", "SOL_RETRY"]
+    "terminal": ["SOL_WORKER", "SOL_RETRY"],
+    "interpret": ["FRONTIER_RETRY", "SOL_WORKER"],
+    "judgement": ["SOL_WORKER", "SOL_RETRY"]
   },
   "kindLadders": {
+    "extraction": "default",
+    "interpretation": "interpret",
+    "analysis": "judgement",
     "debugging": "terminal",
     "testing": "terminal",
     "build": "terminal",
