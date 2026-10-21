@@ -61,6 +61,7 @@ REQUIRED_PATTERNS = (
     ("no spawn_agent for local", r"never represent a local worker through `spawn_agent`"),
     ("explicit worker model and effort", r"Always pass the worker's model and effort explicitly"),
     ("reasoning_effort on every spawn", r"`reasoning_effort`"),
+    ("routing receipt before direct work", r"\*\*Routing receipt\.\*\*"),
     ("no forked history", r'`fork_turns: "none"`'),
     ("no Astra workers", r"Never spawn an Astra worker"),
     ("escalation ladder", r"`LOCAL_DEFAULT`.*→ .*`FRONTIER_WORKER`.*→ `FRONTIER_RETRY`.*→ `SOL_WORKER`"),
