@@ -63,7 +63,8 @@ def main():
     if context is None:
         print(f"CONTEXT model={model} status=UNKNOWN reason=no-token-count{guess}")
         return
-    prompt_at = PROMPT_AT.get(model) or int((window or 272_000) * DEFAULT_FRACTION)
+    # Strip provider prefixes such as "main/" before the lookup.
+    prompt_at = PROMPT_AT.get((model or "").rsplit("/", 1)[-1]) or int((window or 272_000) * DEFAULT_FRACTION)
     status = "PROMPT_USER" if context >= prompt_at else "OK"
     k = lambda n: f"{round(n / 1000)}k" if n else "?"
     print(f"CONTEXT model={model} context={k(context)} window={k(window)} prompt_at={k(prompt_at)} status={status}{guess}")
