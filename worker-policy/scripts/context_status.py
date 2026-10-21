@@ -9,7 +9,7 @@ most recently written rollout (flagged as a guess). Reads only the file tail.
 
 Usage: python context_status.py [--thread UUID] [--codex-home PATH]
 """
-import argparse, glob, json, os
+import argparse, glob, json, os, re
 
 # Advisory prompt points, set below each model's auto-compaction limit so the
 # offer arrives while there is still room to hand over deliberately.
@@ -63,8 +63,11 @@ def main():
     if context is None:
         print(f"CONTEXT model={model} status=UNKNOWN reason=no-token-count{guess}")
         return
-    # Strip provider prefixes such as "main/" before the lookup.
-    prompt_at = PROMPT_AT.get((model or "").rsplit("/", 1)[-1]) or int((window or 272_000) * DEFAULT_FRACTION)
+    # Hosts, proxies and gateways may report the model with a provider prefix
+    # ("provider/model", "provider:model") or different casing; match on the
+    # bare name so the per-model threshold applies regardless of how it is routed.
+    base_model = re.split(r"[/:]", (model or "").strip().lower())[-1]
+    prompt_at = PROMPT_AT.get(base_model) or int((window or 272_000) * DEFAULT_FRACTION)
     status = "PROMPT_USER" if context >= prompt_at else "OK"
     k = lambda n: f"{round(n / 1000)}k" if n else "?"
     print(f"CONTEXT model={model} context={k(context)} window={k(window)} prompt_at={k(prompt_at)} status={status}{guess}")
