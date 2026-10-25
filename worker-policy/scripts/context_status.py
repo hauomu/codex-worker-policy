@@ -13,7 +13,7 @@ import argparse, glob, json, os, re
 
 # Advisory prompt points, set below each model's auto-compaction limit so the
 # offer arrives while there is still room to hand over deliberately.
-PROMPT_AT = {"gpt-6.1-sol": 400_000, "gpt-5.6-sol": 200_000}
+PROMPT_AT = {"gpt-6.1-sol": 400_000, "gpt-5.6-sol": 400_000}
 DEFAULT_FRACTION = 0.75  # of the reported context window, for unlisted models
 TAIL_BYTES = 4 * 1024 * 1024
 
