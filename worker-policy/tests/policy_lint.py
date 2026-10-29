@@ -347,6 +347,78 @@ class DiffStatsCases(unittest.TestCase):
         self.assertEqual(diff_stats.measure(self.repo, "HEAD", 200, 0.35)["debugMarkers"], 0)
 
 
+class PolicyHookCases(unittest.TestCase):
+    """Runs scripts/policy_hook.py as Codex would: JSON on stdin, a subprocess per event."""
+
+    HOOK = POLICY_ROOT / "scripts" / "policy_hook.py"
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.env = {**__import__("os").environ, "CODEX_HOME": self.tmp.name}
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def call(self, **payload):
+        payload.setdefault("session_id", "s1")
+        r = subprocess.run([sys.executable, str(self.HOOK)], input=json.dumps(payload).encode(),
+                           capture_output=True, env=self.env, timeout=30)
+        self.assertEqual(r.returncode, 0)
+        out = r.stdout.decode().strip()
+        return json.loads(out)["hookSpecificOutput"] if out else None
+
+    def rollout(self, *contexts):
+        path = Path(self.tmp.name) / "rollout.jsonl"
+        lines = [{"type": "turn_context", "payload": {"model": "gpt-6.1-sol"}}]
+        lines += [{"type": "event_msg", "payload": {"type": "token_count", "info": {
+            "last_token_usage": {"input_tokens": c}, "model_context_window": 500_000}}} for c in contexts]
+        path.write_text("\n".join(json.dumps(x) for x in lines) + "\n", encoding="utf-8")
+        return str(path)
+
+    def spawn(self, runtime="gpt-6.1-sol", **tool_input):
+        args = {"model": "gpt-6-luna", "reasoning_effort": "high", "fork_turns": "none", "message": "unit"}
+        args.update(tool_input)
+        out = self.call(hook_event_name="PreToolUse", model=runtime, tool_name="spawn_agent", tool_input=args)
+        return out and out["permissionDecisionReason"]
+
+    def test_valid_spawns_pass_silently(self):
+        for args in ({}, {"model": "main/gpt-6-luna"}, {"model": "gpt-6.1-sol", "reasoning_effort": "medium"},
+                     {"model": "gpt-6-luna", "reasoning_effort": "max"}):
+            with self.subTest(**args):
+                self.assertIsNone(self.spawn(**args))
+
+    def test_bad_spawns_are_denied_with_a_reason(self):
+        cases = {"missing reasoning_effort": {"reasoning_effort": None},
+                 "missing model": {"model": None},
+                 'fork_turns "none"': {"fork_turns": "all"},
+                 "Astra": {"model": "gpt-6-astra", "reasoning_effort": "low"},
+                 "not a worker role": {"model": "gpt-6-luna", "reasoning_effort": "medium"}}
+        for expected, args in cases.items():
+            with self.subTest(expected):
+                self.assertIn(expected, self.spawn(**args) or "")
+
+    def test_luna_runtime_never_spawns_and_other_models_are_untouched(self):
+        self.assertIn("never spawns", self.spawn(runtime="gpt-6-luna"))
+        for model in ("claude-opus-5-5", "local/qwen", None):
+            with self.subTest(model=model):
+                self.assertIsNone(self.spawn(runtime=model, reasoning_effort=None))
+                self.assertIsNone(self.call(hook_event_name="UserPromptSubmit", model=model))
+
+    def test_prompt_gets_the_short_reminder_and_tool_calls_stay_silent_below_threshold(self):
+        path = self.rollout(150_000)
+        prompt = self.call(hook_event_name="UserPromptSubmit", model="gpt-6.1-sol", transcript_path=path)
+        self.assertIn("routing receipt", prompt["additionalContext"])
+        self.assertLess(len(prompt["additionalContext"]), 600)  # stays a ~100-token reminder
+        self.assertIsNone(self.call(hook_event_name="PostToolUse", model="gpt-6.1-sol", transcript_path=path))
+
+    def test_handover_offer_once_per_50k_and_rearmed_after_compaction(self):
+        def offered(context):
+            out = self.call(hook_event_name="PostToolUse", model="gpt-6.1-sol", transcript_path=self.rollout(context))
+            return bool(out and "handover point" in out["additionalContext"])
+        self.assertEqual([offered(c) for c in (390_000, 410_000, 430_000, 455_000, 120_000, 405_000)],
+                         [False, True, False, True, False, True])
+
+
 class PolicyLint(unittest.TestCase):
     def test_policy_and_config_lint_clean(self):
         self.assertEqual(lint(), [])
