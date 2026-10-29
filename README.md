@@ -108,6 +108,30 @@ Once it is on:
 
 Set `"enabled": false` to switch back; nothing else needs to change. The full worker contract, including attempt accounting for controller authors, is in [local-workers.md](worker-policy/references/local-workers.md).
 
+## Enforcement hook (optional)
+
+A skill is only instructions: the model decides whether to follow them. In practice the routing rules are mostly followed, but the scripts the model is meant to run itself rarely are. The optional hook in `scripts/policy_hook.py` covers the parts that can be checked mechanically. It applies only when the runtime model is Sol or Astra:
+
+- **Every prompt:** adds a ~100-token routing reminder (about $0.03 over a long session on 6.1 Sol).
+- **After every tool call:** checks the context size from the session's token count and, past the model's handover point, tells the model to offer you a handover, once per 50k of further growth. It stays silent otherwise and costs no tokens.
+- **Before every `spawn_agent`:** denies a worker spawn that lacks an explicit `model`, `reasoning_effort` or `fork_turns: "none"`, uses Astra, or names a model and effort that are not a role in `worker-routing.json`. The model sees the reason and retries correctly. A Luna runtime gets only this check, since Luna never spawns workers.
+
+Replaying 213 real Sol spawns from a week of sessions, it would have denied 125, all genuine policy breaks (mostly forked history or a missing effort). Any error inside the hook exits silently, so it can never stop a session.
+
+To install it, add this to `~/.codex/hooks.json` (merge it with any hooks you already have, and adjust the path):
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "python ~/.codex/skills/worker-policy/scripts/policy_hook.py", "timeout": 10 }] }],
+    "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "python ~/.codex/skills/worker-policy/scripts/policy_hook.py", "timeout": 10 }] }],
+    "PreToolUse": [{ "matcher": "^spawn_agent$", "hooks": [{ "type": "command", "command": "python ~/.codex/skills/worker-policy/scripts/policy_hook.py", "timeout": 10 }] }]
+  }
+}
+```
+
+Then open `/hooks` in Codex and trust the three entries; Codex runs no user hook until you do. On Windows, use the full path in quotes, for example `python 'C:\Users\<you>\.codex\skills\worker-policy\scripts\policy_hook.py'`.
+
 ## License: free to use, not for resale
 
 > **This is not plain Apache-2.0.** It is the [Apache License 2.0](LICENSE) **with the [Commons Clause](https://commonsclause.com/) condition**, which removes the right to sell the software.
