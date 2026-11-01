@@ -119,7 +119,7 @@ Before reporting completion, confirm that:
 - every unit whose ladder ran out was re-planned once or reported to the user with its failure summaries;
 - spawned workers got an explicit model and effort and no forked history, were briefed once, waited on rather than polled, served one unit each, and stayed within their turn budget;
 - every code change has a `diff_stats.py` result, and a `CLEANUP_RECOMMENDED` result got its one cleanup pass;
-- the context check (§9) ran at its fixed points, and a `status=PROMPT_USER` result was reported to the user with the handover offer;
+- the context check (§9) ran at its fixed points, and a `status=PROMPT_USER` result was reported to the user with the handover offer, and any accepted handover went to a successor thread whose start was confirmed;
 - bulk context was reduced by a worker, not read raw into the orchestrator.
 
 Pricing provenance is in [pricing.md](references/pricing.md) and benchmark provenance in [model-performance.md](references/model-performance.md); `route_cost.py` reads [pricing.json](references/pricing.json) and [model-performance.json](references/model-performance.json). Update each pair when prices or published results change. `python scripts/route_cost.py --rank` lists every model and effort by expected cost per solved task.
@@ -129,5 +129,21 @@ Pricing provenance is in [pricing.md](references/pricing.md) and benchmark prove
 Large context is sometimes worth its cost: big-picture implementation work may need it. So this check only informs the user; it never forces a handover.
 
 - Run `python scripts/context_status.py` from this skill directory at these fixed points (not every turn): **before each `spawn_agent` call, after integrating a worker's result, after finishing a unit, and before a large read or a new phase.** It prints one line with the current context size and `status`. Intending to check is not the same as running it; in one observed session an orchestrator reached 427k context without ever running the check.
-- On `status=PROMPT_USER` (about 400k for `gpt-6.1-sol` and `gpt-5.6-sol`), tell the user the context size once and offer a handover: write the project's continuity notes (current state, next work, decisions, a session handoff) with whatever handoff skill or convention the project uses, so a fresh thread can resume. Then continue as the user chooses. Do not ask again until the context has grown roughly another 50k.
+- On `status=PROMPT_USER` (about 400k for `gpt-6.1-sol` and `gpt-5.6-sol`), tell the user the context size once and offer a handover: write the project's continuity notes (current state, next work, decisions, a session handoff) with whatever handoff skill or convention the project uses, and offer to start a successor thread that takes over. Then continue as the user chooses. Do not ask again until the context has grown roughly another 50k.
 - Never start a handover, compact, or stop work on your own because of this check.
+
+**Successor thread.** Use it when the user accepts the offer or asks for a fresh session or thread to take over. This thread still knows things the continuity notes leave out, so it writes the successor's prompt; a thread the user starts by hand from the notes alone spends its first calls looking for the project.
+
+1. Finish or checkpoint the current unit and write the continuity notes.
+2. Create the successor with the Codex app's `create_thread` (find it in the tool list). For a saved project, call `list_projects` and use `target: {type: "project", projectId, environment: {type: "local"}}`. Otherwise use `projectless` and name the project's absolute path in the prompt as the working directory for every command. Pass `model` and `thinking` explicitly. `handoff_thread` is not a successor: it moves an existing thread between its checkout and a worktree.
+3. Write the prompt in these parts, in order, at most about 5k characters:
+   - **Owner:** "Take over <project> from the previous thread", plus the folder, repo, branch or commit, and open PRs.
+   - **Read first:** the continuity notes, read once, in the order the project's handoff convention gives.
+   - **Live state:** what the notes do not show: running jobs, staged but unapplied changes, the latest artifacts and which earlier ones are superseded.
+   - **Approval boundary:** what still needs the user's explicit approval. The request to hand over approves only the new thread.
+   - **Don't redo:** finished tests, corpus runs and reviews, with their results. Repeat them only for new changes, failures or a specific concern.
+   - **First steps:** numbered, and the first one concrete.
+   - **Standing rules:** the user's rules that apply to this project, including this policy's context check.
+   - **Prior thread:** its ID, for `read_thread` summaries only if a detail is missing. Never read the whole transcript.
+4. Confirm the start with `wait_threads` (about 60 s). The successor should have read the notes and acknowledged or begun step 1. If it has not, tell the user rather than resending the prompt.
+5. Give the user the new thread and do no more project work in this one.
