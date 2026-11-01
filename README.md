@@ -130,7 +130,7 @@ To install it, add this to `~/.codex/hooks.json` (merge it with any hooks you al
 }
 ```
 
-Then open `/hooks` in Codex and trust the three entries; Codex runs no user hook until you do. Each run writes `hooks/state/worker_policy/last_run.json` under your Codex home, so you can confirm the hook is running. On Windows, use the full path in quotes, for example `python 'C:\Users\<you>\.codex\skills\worker-policy\scripts\policy_hook.py'`.
+Then open `/hooks` in Codex and trust the three entries; Codex runs no user hook until you do. Each run writes `hooks/state/worker_policy/last_run.json` under your Codex home, so you can confirm the hook is running. On Windows, put the full path in double quotes, which work in both cmd.exe and PowerShell; single quotes break under cmd.exe and the hook then silently never runs. In `hooks.json` that is `"command": "python \"C:\\Users\\<you>\\.codex\\skills\\worker-policy\\scripts\\policy_hook.py\""`. After changing a command, trust it again in `/hooks`.
 
 ## License: free to use, not for resale
 
