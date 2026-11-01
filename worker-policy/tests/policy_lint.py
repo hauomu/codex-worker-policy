@@ -84,6 +84,7 @@ REQUIRED_PATTERNS = (
     ("cleanup is one pass", r"One pass, then stop"),
     ("completion gate section", r"^## \d+\. Completion gate"),
     ("context check section", r"^## \d+\. Context check"),
+    ("successor thread handoff", r"\*\*Successor thread\.\*\*.*`create_thread`.*`wait_threads`"),
 )
 
 REQUIRED_REFERENCES = ("local-workers.md", "pricing.md", "pricing.json", "worker-routing.json",
