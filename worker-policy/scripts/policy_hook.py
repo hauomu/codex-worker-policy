@@ -97,7 +97,14 @@ def spawn_problem(tool_input):
 def main():
     data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig") or "{}")
     event = data.get("hook_event_name")
-    fam = family(data.get("model"))
+    model = data.get("model")
+    path = data.get("transcript_path")
+    if not model and path and os.path.exists(path):  # some Codex builds omit "model" from hook input
+        model = context_status.latest(path)[0]
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(os.path.join(STATE_DIR, "last_run.json"), "w", encoding="utf-8") as fh:  # proves the hook runs
+        json.dump({"event": event, "model": model, "input_had_model": bool(data.get("model"))}, fh)
+    fam = family(model)
     if fam not in ("sol", "astra", "luna"):
         return
     if event == "PreToolUse" and data.get("tool_name") in ("spawn_agent", "Agent"):
