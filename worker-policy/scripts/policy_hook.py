@@ -73,9 +73,9 @@ def context_note(data):
         return None
     k = round(context / 1000)
     return (f"Context is about {k}k tokens, past the {prompt_at // 1000}k handover point (worker-policy §9). "
-            "Tell the user the size once and offer a handover: finish the current unit, write the project's "
-            "continuity notes, and let a fresh thread resume. Then continue as the user chooses; do not hand over, "
-            "compact or stop on your own.")
+            "Tell the user the size once and recommend a fresh thread: finish the current unit, write the "
+            "project's continuity notes, and offer to start a successor thread that takes over, or let the user "
+            "start one. Then continue as the user chooses; do not hand over, compact or stop on your own.")
 
 
 def spawn_problem(tool_input):
