@@ -147,3 +147,7 @@ Then open `/hooks` in Codex and trust the three entries; Codex runs no user hook
 Because of the Commons Clause this is **source-available**, not OSI-approved open source. The table is a summary; [LICENSE](LICENSE) is binding. For commercial licensing, contact [@hauomu](https://github.com/hauomu).
 
 Not affiliated with or endorsed by OpenAI.
+
+## License update: no AI training
+
+The license now also includes an AI and data mining restriction: this skill may not be scraped, used for text and data mining, or used to train or evaluate AI models without written permission. Using it with Codex or another AI tool to do your own work is still allowed, as long as its contents aren't kept or used for training. See [LICENSE](LICENSE) for the complete terms.

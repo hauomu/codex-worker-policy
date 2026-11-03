@@ -4,7 +4,26 @@
 
 codex-worker-policy is licensed under the Apache License 2.0 WITH the
 "Commons Clause" License Condition v1.0. The Commons Clause REMOVES the
-right to Sell the Software. Both parts below are binding.
+right to Sell the Software. The AI and data mining restriction and both parts
+below are binding.
+
+AI and Data Mining Restriction
+
+Unless you first obtain explicit written permission from the Licensor, you may not:
+
+- scrape, harvest, or bulk-collect this skill; or
+- use this skill, or any part of it, for text and data mining, to train,
+  fine-tune, validate, or evaluate any machine learning or artificial
+  intelligence model, or as part of a dataset for those purposes.
+
+the Licensor expressly reserves all rights against text and data mining, including
+under Article 4(3) of Directive (EU) 2019/790.
+
+This restriction does not limit ordinary viewing, forking, or cloning through
+GitHub as its Terms of Service allow, or search-engine indexing. It also does
+not stop you running this skill, or having an AI tool read or run it to do your own
+work, as long as its contents are not kept or used to train a model. It does
+not limit any right that applicable law does not allow a license to exclude.
 
 Licensor:  Sherman (GitHub: hauomu, https://github.com/hauomu)
 Software:  codex-worker-policy (https://github.com/hauomu/codex-worker-policy)
@@ -27,6 +46,7 @@ Plain-English summary (the full terms below control):
       advertising "built-in cost-aware worker delegation" powered by it);
     - charge for hosting, consulting or support services whose value
       comes entirely or substantially from this skill;
+    - scrape it, mine it, or use it to train or evaluate AI models;
     - remove or hide this condition when redistributing.
 
 For commercial licensing, contact the Licensor via https://github.com/hauomu.
