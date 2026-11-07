@@ -33,6 +33,20 @@ REMINDER = (
 )
 
 
+MARKER_RE = re.compile(r"^CODEX_DELEGATED_WORKER_UNIT=1[ 	]*$", re.M)
+
+
+def delegated(data):
+    """True for a delegated worker unit: the user prompt carries the marker line (SKILL.md §1 exception).
+    Remembered per session so later hook events (spawn check) agree with the first prompt."""
+    flag = os.path.join(STATE_DIR, "delegated_" + re.sub(r"[^\w.-]", "_", data.get("session_id") or "unknown"))
+    if data.get("hook_event_name") == "UserPromptSubmit" and MARKER_RE.search(data.get("prompt") or ""):
+        os.makedirs(STATE_DIR, exist_ok=True)
+        open(flag, "w").close()
+        return True
+    return os.path.exists(flag)
+
+
 def base(model):
     return re.split(r"[/:]", (model or "").strip().lower())[-1]
 
@@ -110,13 +124,16 @@ def main():
     if event == "PreToolUse" and data.get("tool_name") in ("spawn_agent", "Agent"):
         tool_input = data.get("tool_input") or {}
         reason = ("A Luna orchestrator never spawns workers (worker-policy §1); continue directly."
-                  if fam == "luna" else spawn_problem(tool_input))
+                  if fam == "luna" else "A delegated worker unit never spawns workers (worker-policy §1); do the unit directly."
+                  if delegated(data) else spawn_problem(tool_input))
         if reason:
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
                                                      "permissionDecision": "deny",
                                                      "permissionDecisionReason": "worker-policy: " + reason}}))
         return
     if fam == "luna" or event not in ("UserPromptSubmit", "PostToolUse"):
+        return
+    if delegated(data):  # no orchestrator reminder or handover offer for a delegated worker unit
         return
     notes = [REMINDER] if event == "UserPromptSubmit" else []
     note = context_note(data)
